@@ -1,0 +1,12 @@
+#
+# For licensing see accompanying LICENSE file.
+# Copyright (C) 2024-2025 Apple Inc. All Rights Reserved.
+#
+# Copyright (c) 2024, NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+#
+# This work is licensed under a Creative Commons
+# Attribution-NonCommercial-ShareAlike 4.0 International License.
+# You should have received a copy of the license along with this
+# work. If not, see http://creativecommons.org/licenses/by-nc-sa/4.0/
+
+# empty

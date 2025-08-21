@@ -1,0 +1,948 @@
+Initializing custom LitData pipeline...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 211, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 205, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 127, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 161, in training_loop
+[rank0]:     dist.barrier()
+[rank0]:     ^^^^^^^^^^^^
+[rank0]: AttributeError: module 'torch_utils.distributed' has no attribute 'barrier'
+Initializing custom LitData pipeline...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 211, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 205, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 127, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 162, in training_loop
+[rank0]:     dataset_obj = CustomLitDataset(path=dataset_kwargs['path'], cache_dir=cache_dir)
+[rank0]:                   ^^^^^^^^^^^^^^^^
+[rank0]: NameError: name 'CustomLitDataset' is not defined
+Initializing custom LitData pipeline...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 211, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 205, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 127, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 162, in training_loop
+[rank0]:     dataset_obj = CustomLitDataset(path=dataset_kwargs['path'], cache_dir=cache_dir)
+[rank0]:                                         ~~~~~~~~~~~~~~^^^^^^^^
+[rank0]: KeyError: 'path'
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 168, in training_loop
+[rank0]:     ref_image, _, ref_label = (dataset_obj[0][("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
+[rank0]:     ^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 168, in <genexpr>
+[rank0]:     ref_image, _, ref_label = (dataset_obj[0][("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
+[rank0]:                                ~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: KeyError: 'src_image'
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 183, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 70, in compose_geometry
+[rank0]:     mean[12:] *= (imsize/64)
+[rank0]: RuntimeError: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 0
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 188, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 70, in compose_geometry
+[rank0]:     mean[12:] *= (imsize/64)
+[rank0]: RuntimeError: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 0
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': tensor([240.0544, 239.5865, 128.0000, 128.0000])
+Type of 'imsize': <class 'torch.Tensor'>
+------------------------------------
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 188, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 77, in compose_geometry
+[rank0]:     mean[12:] *= (imsize/64)
+[rank0]: RuntimeError: The size of tensor a (8) must match the size of tensor b (4) at non-singleton dimension 0
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 188, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]: TypeError: compose_geometry() got an unexpected keyword argument 'c2w_src'
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 190, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 79, in compose_geometry
+[rank0]:     geometry = torch.cat((tgt2src.reshape(*tgt2src.shape[:-2], 12), compose_K(src_K), compose_K(tgt_K)), -1)
+[rank0]:                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: RuntimeError: shape '[12]' is invalid for input of size 16
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 193, in training_loop
+[rank0]:     ref_label = compose_geometry(
+[rank0]:                 ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 79, in compose_geometry
+[rank0]:     geometry = torch.cat((tgt2src.reshape(*tgt2src.shape[:-2], 12), compose_K(src_K), compose_K(tgt_K)), -1)
+[rank0]:                                                                     ^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/utils.py", line 51, in compose_K
+[rank0]:     return torch.stack((K[..., 0, 0], K[..., 1, 1], K[..., 0, 2], K[..., 1, 2]), -1)
+[rank0]:                         ~^^^^^^^^^^^
+[rank0]: IndexError: too many indices for tensor of dimension 1
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 211, in training_loop
+[rank0]:     misc.print_module_summary(net, [
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/torch_utils/misc.py", line 225, in print_module_summary
+[rank0]:     outputs = module(*inputs)
+[rank0]:               ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 627, in forward
+[rank0]:     features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 513, in forward
+[rank0]:     x = block(x) if 'conv' in name else block(x, emb)
+[rank0]:         ^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 123, in forward
+[rank0]:     return torch.nn.functional.conv2d(x, w, padding=(w.shape[-1]//2,))
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 16.00 GiB. GPU 0 has a total capacity of 11.64 GiB of which 7.17 GiB is free. Including non-PyTorch memory, this process has 4.46 GiB memory in use. Of the allocated memory 3.63 GiB is allocated by PyTorch, and 397.96 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 211, in training_loop
+[rank0]:     misc.print_module_summary(net, [
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/torch_utils/misc.py", line 225, in print_module_summary
+[rank0]:     outputs = module(*inputs)
+[rank0]:               ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 627, in forward
+[rank0]:     features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 513, in forward
+[rank0]:     x = block(x) if 'conv' in name else block(x, emb)
+[rank0]:                                         ^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 173, in forward
+[rank0]:     y = mp_silu(y * c.unsqueeze(2).unsqueeze(3).to(y.dtype))
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 65, in mp_silu
+[rank0]:     return torch.nn.functional.silu(x) / 0.596
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/functional.py", line 2380, in silu
+[rank0]:     return torch._C._nn.silu(input)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 2.00 GiB. GPU 0 has a total capacity of 11.64 GiB of which 1.96 GiB is free. Including non-PyTorch memory, this process has 9.66 GiB memory in use. Of the allocated memory 9.16 GiB is allocated by PyTorch, and 65.75 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 211, in training_loop
+[rank0]:     misc.print_module_summary(net, [
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/torch_utils/misc.py", line 225, in print_module_summary
+[rank0]:     outputs = module(*inputs)
+[rank0]:               ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 627, in forward
+[rank0]:     features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 513, in forward
+[rank0]:     x = block(x) if 'conv' in name else block(x, emb)
+[rank0]:                                         ^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 190, in forward
+[rank0]:     w = torch.einsum('nhcq,nhck->nhqk', q, k / np.sqrt(q.shape[2])).softmax(dim=3)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/functional.py", line 407, in einsum
+[rank0]:     return _VF.einsum(equation, operands)  # type: ignore[attr-defined]
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 128.00 GiB. GPU 0 has a total capacity of 11.64 GiB of which 115.94 MiB is free. Including non-PyTorch memory, this process has 11.51 GiB memory in use. Of the allocated memory 9.77 GiB is allocated by PyTorch, and 1.30 GiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 211, in training_loop
+[rank0]:     misc.print_module_summary(net, [
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/torch_utils/misc.py", line 225, in print_module_summary
+[rank0]:     outputs = module(*inputs)
+[rank0]:               ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 627, in forward
+[rank0]:     features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 513, in forward
+[rank0]:     x = block(x) if 'conv' in name else block(x, emb)
+[rank0]:                                         ^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 190, in forward
+[rank0]:     w = torch.einsum('nhcq,nhck->nhqk', q, k / np.sqrt(q.shape[2])).softmax(dim=3)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/functional.py", line 407, in einsum
+[rank0]:     return _VF.einsum(equation, operands)  # type: ignore[attr-defined]
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 32.00 GiB. GPU 0 has a total capacity of 11.64 GiB of which 8.37 GiB is free. Including non-PyTorch memory, this process has 3.26 GiB memory in use. Of the allocated memory 2.49 GiB is allocated by PyTorch, and 336.68 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 211, in training_loop
+[rank0]:     misc.print_module_summary(net, [
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/_contextlib.py", line 116, in decorate_context
+[rank0]:     return func(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/torch_utils/misc.py", line 225, in print_module_summary
+[rank0]:     outputs = module(*inputs)
+[rank0]:               ^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 627, in forward
+[rank0]:     features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+[rank0]:                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 513, in forward
+[rank0]:     x = block(x) if 'conv' in name else block(x, emb)
+[rank0]:                                         ^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1739, in _wrapped_call_impl
+[rank0]:     return self._call_impl(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1845, in _call_impl
+[rank0]:     return inner()
+[rank0]:            ^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/nn/modules/module.py", line 1793, in inner
+[rank0]:     result = forward_call(*args, **kwargs)
+[rank0]:              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/models.py", line 190, in forward
+[rank0]:     w = torch.einsum('nhcq,nhck->nhqk', q, k / np.sqrt(q.shape[2])).softmax(dim=3)
+[rank0]:         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: torch.OutOfMemoryError: CUDA out of memory. Tried to allocate 8.00 GiB. GPU 0 has a total capacity of 11.64 GiB of which 2.35 GiB is free. Including non-PyTorch memory, this process has 9.28 GiB memory in use. Of the allocated memory 8.76 GiB is allocated by PyTorch, and 72.77 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True to avoid fragmentation.  See documentation for Memory Management  (https://pytorch.org/docs/stable/notes/cuda.html#environment-variables)
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+
+NVPrecond                   Parameters  Buffers  Output shape        Datatype
+---                         ---         ---      ---                 ---     
+encoder.emb_fourier         -           128      [2, 64]             float32 
+encoder.emb_noise           16384       -        [2, 256]            float32 
+encoder.emb_label           5120        -        [2, 256]            float32 
+encoder.enc.256x256_conv    2304        -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block0  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block1  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block2  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.128x128_down    90113       -        [2, 64, 128, 128]   float16 
+encoder.enc.128x128_block0  335873      -        [2, 128, 128, 128]  float16 
+encoder.enc.128x128_block1  393217      -        [2, 128, 128, 128]  float16 
+encoder.enc.128x128_block2  327681      -        [2, 128, 128, 128]  float16 
+encoder.enc.64x64_down      327681      -        [2, 128, 64, 64]    float16 
+encoder.enc.64x64_block0    737281      -        [2, 192, 64, 64]    float16 
+encoder.enc.64x64_block1    860161      -        [2, 192, 64, 64]    float16 
+encoder.enc.64x64_block2    712705      -        [2, 192, 64, 64]    float16 
+encoder.enc.32x32_down      712705      -        [2, 192, 32, 32]    float16 
+encoder.enc.32x32_block0    1294337     -        [2, 256, 32, 32]    float16 
+encoder.enc.32x32_block1    1507329     -        [2, 256, 32, 32]    float16 
+encoder.enc.32x32_block2    1245185     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_in0       1507329     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_in1       1245185     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block0    1966081     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block1    1966081     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block2    2228225     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block3    1802241     -        [2, 256, 32, 32]    float16 
+encoder.dec.64x64_up        1245185     -        [2, 256, 64, 64]    float16 
+encoder.dec.64x64_block0    1241089     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block1    1118209     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block2    1265665     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block3    995329      -        [2, 192, 64, 64]    float16 
+encoder.dec.128x128_up      712705      -        [2, 192, 128, 128]  float16 
+encoder.dec.128x128_block0  589825      -        [2, 128, 128, 128]  float16 
+encoder.dec.128x128_block1  507905      -        [2, 128, 128, 128]  float16 
+encoder.dec.128x128_block2  573441      -        [2, 128, 128, 128]  float16 
+unet.emb_fourier            -           128      [2, 64]             float32 
+unet.emb_noise              16384       -        [2, 256]            float32 
+unet.emb_label              5120        -        [2, 256]            float32 
+unet.enc.256x256_conv       2304        -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block0     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block1     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block2     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.128x128_down       90113       -        [2, 64, 128, 128]   float16 
+unet.enc.128x128_block0     335873      -        [2, 128, 128, 128]  float16 
+unet.enc.128x128_block1     425985      -        [2, 128, 128, 128]  float16 
+unet.enc.128x128_block2     327681      -        [2, 128, 128, 128]  float16 
+unet.enc.64x64_down         327681      -        [2, 128, 64, 64]    float16 
+unet.enc.64x64_block0       737281      -        [2, 192, 64, 64]    float16 
+unet.enc.64x64_block1       933889      -        [2, 192, 64, 64]    float16 
+unet.enc.64x64_block2       712705      -        [2, 192, 64, 64]    float16 
+unet.enc.32x32_down         712705      -        [2, 192, 32, 32]    float16 
+unet.enc.32x32_block0       1294337     -        [2, 256, 32, 32]    float16 
+unet.enc.32x32_block1       1638401     -        [2, 256, 32, 32]    float16 
+unet.enc.32x32_block2       1245185     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_in0          1638401     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_in1          1245185     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block0       1966081     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block1       1966081     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block2       2359297     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block3       1802241     -        [2, 256, 32, 32]    float16 
+unet.dec.64x64_up           1245185     -        [2, 256, 64, 64]    float16 
+unet.dec.64x64_block0       1241089     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block1       1118209     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block2       1339393     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block3       995329      -        [2, 192, 64, 64]    float16 
+unet.dec.128x128_up         712705      -        [2, 192, 128, 128]  float16 
+unet.dec.128x128_block0     589825      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block1     507905      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block2     606209      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block3     425985      -        [2, 128, 128, 128]  float16 
+unet.dec.256x256_up         327681      -        [2, 128, 256, 256]  float16 
+unet.dec.256x256_block0     176129      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block1     135169      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block2     135169      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block3     135169      -        [2, 64, 256, 256]   float16 
+unet.out_conv               1728        -        [2, 3, 256, 256]    float16 
+unet                        1           -        [2, 3, 256, 256]    float16 
+<top-level>                 128         256      [2, 3, 256, 256]    float32 
+---                         ---         ---      ---                 ---     
+Total                       57549187    512      -                   -       
+
+Setting up training state...
+Training from 0 kimg to 1073741 kimg (536870912 iters):
+
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 248, in training_loop
+[rank0]:     dataset_iterator = iter(torch.utils.data.DataLoader(
+[rank0]:                             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]: TypeError: DataLoader.__init__() got an unexpected keyword argument 'class_name'
+Initializing custom LitData pipeline...
+Initializing LitData StreamingDataset from path: /storage/user/lavingal/re10k_train_chunks_all_views
+Found 65833 items in dataset.
+Fetching a sample item to configure network...
+--- DEBUGGING COMPOSE_GEOMETRY ---
+Shape of 'mean': torch.Size([20])
+Data type of 'mean': torch.float32
+Shape of 'mean[12:]': torch.Size([8])
+Value of 'imsize': 64
+Type of 'imsize': <class 'int'>
+------------------------------------
+Setting up encoder...
+Constructing network...
+
+NVPrecond                   Parameters  Buffers  Output shape        Datatype
+---                         ---         ---      ---                 ---     
+encoder.emb_fourier         -           128      [2, 64]             float32 
+encoder.emb_noise           16384       -        [2, 256]            float32 
+encoder.emb_label           5120        -        [2, 256]            float32 
+encoder.enc.256x256_conv    2304        -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block0  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block1  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.256x256_block2  90113       -        [2, 64, 256, 256]   float16 
+encoder.enc.128x128_down    90113       -        [2, 64, 128, 128]   float16 
+encoder.enc.128x128_block0  335873      -        [2, 128, 128, 128]  float16 
+encoder.enc.128x128_block1  393217      -        [2, 128, 128, 128]  float16 
+encoder.enc.128x128_block2  327681      -        [2, 128, 128, 128]  float16 
+encoder.enc.64x64_down      327681      -        [2, 128, 64, 64]    float16 
+encoder.enc.64x64_block0    737281      -        [2, 192, 64, 64]    float16 
+encoder.enc.64x64_block1    860161      -        [2, 192, 64, 64]    float16 
+encoder.enc.64x64_block2    712705      -        [2, 192, 64, 64]    float16 
+encoder.enc.32x32_down      712705      -        [2, 192, 32, 32]    float16 
+encoder.enc.32x32_block0    1294337     -        [2, 256, 32, 32]    float16 
+encoder.enc.32x32_block1    1507329     -        [2, 256, 32, 32]    float16 
+encoder.enc.32x32_block2    1245185     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_in0       1507329     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_in1       1245185     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block0    1966081     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block1    1966081     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block2    2228225     -        [2, 256, 32, 32]    float16 
+encoder.dec.32x32_block3    1802241     -        [2, 256, 32, 32]    float16 
+encoder.dec.64x64_up        1245185     -        [2, 256, 64, 64]    float16 
+encoder.dec.64x64_block0    1241089     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block1    1118209     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block2    1265665     -        [2, 192, 64, 64]    float16 
+encoder.dec.64x64_block3    995329      -        [2, 192, 64, 64]    float16 
+encoder.dec.128x128_up      712705      -        [2, 192, 128, 128]  float16 
+encoder.dec.128x128_block0  589825      -        [2, 128, 128, 128]  float16 
+encoder.dec.128x128_block1  507905      -        [2, 128, 128, 128]  float16 
+encoder.dec.128x128_block2  573441      -        [2, 128, 128, 128]  float16 
+unet.emb_fourier            -           128      [2, 64]             float32 
+unet.emb_noise              16384       -        [2, 256]            float32 
+unet.emb_label              5120        -        [2, 256]            float32 
+unet.enc.256x256_conv       2304        -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block0     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block1     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.256x256_block2     90113       -        [2, 64, 256, 256]   float16 
+unet.enc.128x128_down       90113       -        [2, 64, 128, 128]   float16 
+unet.enc.128x128_block0     335873      -        [2, 128, 128, 128]  float16 
+unet.enc.128x128_block1     425985      -        [2, 128, 128, 128]  float16 
+unet.enc.128x128_block2     327681      -        [2, 128, 128, 128]  float16 
+unet.enc.64x64_down         327681      -        [2, 128, 64, 64]    float16 
+unet.enc.64x64_block0       737281      -        [2, 192, 64, 64]    float16 
+unet.enc.64x64_block1       933889      -        [2, 192, 64, 64]    float16 
+unet.enc.64x64_block2       712705      -        [2, 192, 64, 64]    float16 
+unet.enc.32x32_down         712705      -        [2, 192, 32, 32]    float16 
+unet.enc.32x32_block0       1294337     -        [2, 256, 32, 32]    float16 
+unet.enc.32x32_block1       1638401     -        [2, 256, 32, 32]    float16 
+unet.enc.32x32_block2       1245185     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_in0          1638401     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_in1          1245185     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block0       1966081     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block1       1966081     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block2       2359297     -        [2, 256, 32, 32]    float16 
+unet.dec.32x32_block3       1802241     -        [2, 256, 32, 32]    float16 
+unet.dec.64x64_up           1245185     -        [2, 256, 64, 64]    float16 
+unet.dec.64x64_block0       1241089     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block1       1118209     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block2       1339393     -        [2, 192, 64, 64]    float16 
+unet.dec.64x64_block3       995329      -        [2, 192, 64, 64]    float16 
+unet.dec.128x128_up         712705      -        [2, 192, 128, 128]  float16 
+unet.dec.128x128_block0     589825      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block1     507905      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block2     606209      -        [2, 128, 128, 128]  float16 
+unet.dec.128x128_block3     425985      -        [2, 128, 128, 128]  float16 
+unet.dec.256x256_up         327681      -        [2, 128, 256, 256]  float16 
+unet.dec.256x256_block0     176129      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block1     135169      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block2     135169      -        [2, 64, 256, 256]   float16 
+unet.dec.256x256_block3     135169      -        [2, 64, 256, 256]   float16 
+unet.out_conv               1728        -        [2, 3, 256, 256]    float16 
+unet                        1           -        [2, 3, 256, 256]    float16 
+<top-level>                 128         256      [2, 3, 256, 256]    float32 
+---                         ---         ---      ---                 ---     
+Total                       57549187    512      -                   -       
+
+Setting up training state...
+Training from 0 kimg to 1073741 kimg (536870912 iters):
+
+Status: kimg 0.0       iter 0.0       time 21s          sec/tick 21.15    sec/kimg 0.000   maintenance 21.15   cpumem 4.30   gpumem 8.68   reserved 10.53 
+[rank0]: Traceback (most recent call last):
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 212, in <module>
+[rank0]:     cmdline()
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1442, in __call__
+[rank0]:     return self.main(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1363, in main
+[rank0]:     rv = self.invoke(ctx)
+[rank0]:          ^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 1226, in invoke
+[rank0]:     return ctx.invoke(self.callback, **ctx.params)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 102, in augment_usage_errors
+[rank0]:     yield
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/click/core.py", line 794, in invoke
+[rank0]:     return callback(*args, **kwargs)
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 206, in cmdline
+[rank0]:     launch_training(run_dir=outdir, c=c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/train_nvs.py", line 128, in launch_training
+[rank0]:     training.training_loop.training_loop(run_dir=run_dir, **c)
+[rank0]:   File "/storage/slurm/lavingal/lavingal/vivid/training/training_loop.py", line 307, in training_loop
+[rank0]:     data = next(iter(test_dataset_loader))
+[rank0]:            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 708, in __next__
+[rank0]:     data = self._next_data()
+[rank0]:            ^^^^^^^^^^^^^^^^^
+[rank0]:   File "/home/stud/lavingal/miniforge3/envs/vivid/lib/python3.11/site-packages/torch/utils/data/dataloader.py", line 1447, in _next_data
+[rank0]:     raise StopIteration
+[rank0]: StopIteration

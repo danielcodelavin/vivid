@@ -90,6 +90,13 @@ def print0(*args, **kwargs):
 
 #----------------------------------------------------------------------------
 
+
+def barrier():
+    if get_world_size() > 1:
+        torch.distributed.barrier()
+
+
+
 class CheckpointIO:
     def __init__(self, **kwargs):
         self._state_objs = kwargs

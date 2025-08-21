@@ -1,0 +1,50 @@
+{
+  "dataset_kwargs": {
+    "class_name": "datautils.RealEstate10K",
+    "split": "train",
+    "imsize": 64
+  },
+  "encoder_kwargs": {
+    "class_name": "training.encoders.StandardRGBEncoder"
+  },
+  "total_nimg": 1073741824,
+  "batch_size": 1024,
+  "network_kwargs": {
+    "class_name": "training.models.NVPrecond",
+    "model_channels": 128,
+    "dropout": 0.0,
+    "extra_attn": 1,
+    "epipolar_attention_bias": false,
+    "super_res": false,
+    "no_time_enc": false,
+    "depth_input": false,
+    "warp_depth_coor": false,
+    "uncond": false,
+    "noisy_sr": null,
+    "use_fp16": true
+  },
+  "loss_kwargs": {
+    "class_name": "training.training_loop.NVLoss",
+    "P_mean": -0.8,
+    "P_std": 1.6
+  },
+  "lr_kwargs": {
+    "func_name": "training.training_loop.learning_rate_schedule",
+    "ref_lr": 0.012,
+    "ref_batches": 35000
+  },
+  "batch_gpu": null,
+  "loss_scaling": 1.0,
+  "cudnn_benchmark": true,
+  "status_nimg": 131072,
+  "samples_nimg": 1048576,
+  "metrics_nimg": 8388608,
+  "snapshot_nimg": 8388608,
+  "checkpoint_nimg": 16777216,
+  "seed": 0,
+  "debug": null,
+  "sr_model": null,
+  "depth_model": null,
+  "single_image_mix": null,
+  "sr_training": false
+}

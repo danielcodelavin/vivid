@@ -44,14 +44,8 @@ def setup_training_config(preset='vivid-base', **opts):
         if opts.get(key, None) is None:
             opts[key] = value
 
-    c.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=1, prefetch_factor=2)
-
-
     # Dataset.
-    path_to_dataset = '/storage/user/lavingal/re10k_test_chunks_all_views'
-    c.dataset_kwargs = dnnlib.EasyDict(class_name='datautils.RealEstate10K', path=path_to_dataset, split="train", imsize=64)
-
-    
+    c.dataset_kwargs = dnnlib.EasyDict(class_name='datautils.RealEstate10K', split="train", imsize=64)
     try:
         dataset_obj = dnnlib.util.construct_class_by_name(**c.dataset_kwargs)
         dataset_channels = dataset_obj.num_channels
@@ -93,7 +87,6 @@ def setup_training_config(preset='vivid-base', **opts):
     c.depth_model = opts.get('depth_model', 0) or None
     c.single_image_mix = opts.get('single_image_mix', 0) or None
     c.sr_training = opts.get('sr_training', 0) or False
-    c.test_dataset_path = opts.get('test_data_path', None)
     return c
 
 #----------------------------------------------------------------------------
@@ -156,7 +149,7 @@ def parse_nimg(s):
 @click.command()
 
 # Main options.
-@click.option('--outdir',           help='Where to save the results', metavar='DIR',            type=str, default='output/')
+@click.option('--outdir',           help='Where to save the results', metavar='DIR',            type=str, default='.')
 @click.option('--cond',             help='Train class-conditional model', metavar='BOOL',       type=bool, default=True, show_default=True)
 @click.option('--preset',           help='Configuration preset', metavar='STR',                 type=str, default='vivid-base', show_default=True)
 @click.option('--sr-training',      help='Toggles training of SR model',                        is_flag=True)
@@ -181,10 +174,10 @@ def parse_nimg(s):
 @click.option('--uncond',           help='Regular diffusion',                                   is_flag=True)
 @click.option('--noisy-sr',         help='Adds noise to low-res image',                         type=float, default=None, show_default=True)
 @click.option('--sr-model',         help='Path to SR model to use for evaluation',metavar='STR',type=str, required=False)
-@click.option('--test-data-path',   help='Path to the test dataset chunks', metavar='DIR', type=str, default='/storage/user/lavingal/re10k_test_chunks_all_views')
+
 
 # Performance-related options.
-@click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=2, show_default=True)
+@click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=0, show_default=True)
 @click.option('--fp16',             help='Enable mixed-precision training', metavar='BOOL',     type=bool, default=True, show_default=True)
 @click.option('--ls',               help='Loss scaling', metavar='FLOAT',                       type=click.FloatRange(min=0, min_open=True), default=1, show_default=True)
 @click.option('--bench',            help='Enable cuDNN benchmarking', metavar='BOOL',           type=bool, default=True, show_default=True)
@@ -217,3 +210,4 @@ if __name__ == "__main__":
     torch.multiprocessing.set_start_method('spawn', force=True)
     cmdline()
 
+#----------------------------------------------------------------------------

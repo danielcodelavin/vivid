@@ -17,7 +17,7 @@ import torch
 from torch_utils import persistence
 from torch_utils import misc
 from training.utils import get_epipolar_dist, get_warped_features
-import torch.nn.functional as F
+
 
 def get_epipolar_attn(epipolar_corr, epipolar_mixing, patch_size=1):
     epipolar_corr = epipolar_corr.unsqueeze(1)

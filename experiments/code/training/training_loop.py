@@ -27,16 +27,14 @@ import torchvision.transforms.functional
 from torch.utils.tensorboard import SummaryWriter
 import dnnlib
 from generate_images import edm_sampler
-import random
 from torch_utils import distributed as dist
 from torch_utils import training_stats
 from torch_utils import persistence
 from torch_utils import misc
 from training.utils import add_depth, compose_geometry, open_tensorboard_process, resolve_model, resolve_depth_model
 from calculate_metrics import get_metrics
-from .custom_litdata_loader import CustomLitCollate , CustomLitDataset
-from tqdm import tqdm
-import torch.profiler
+from .custom_litdata_loader import CustomLitCollate
+    
 
 @persistence.persistent_class
 class NVLoss:
@@ -92,10 +90,9 @@ def learning_rate_schedule(cur_nimg, batch_size, ref_lr=100e-4, ref_batches=70e3
 # Main training loop.
 
 def training_loop(
-    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_test_chunks_all_views'),
-    test_dataset_path   = '/storage/user/lavingal/re10k_test_chunks_all_views', 
+    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_train_chunks_all_views'),
     encoder_kwargs      = dict(class_name='training.encoders.StandardRGBEncoder'),
-    data_loader_kwargs  = dict(class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=1, prefetch_factor=2),
+    data_loader_kwargs  = dict(class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=4, prefetch_factor=2),
     network_kwargs      = dict(class_name='training.networks_edm2.Precond'),
     loss_kwargs         = dict(class_name='training.training_loop.NVDiffLoss'),
     optimizer_kwargs    = dict(class_name='torch.optim.Adam', betas=(0.9, 0.99)),
@@ -104,7 +101,7 @@ def training_loop(
 
     run_dir             = '.',      # Output directory.
     seed                = 0,        # Global random seed.
-    batch_size          = 8,     # Total batch size for one training iteration.
+    batch_size          = 2048,     # Total batch size for one training iteration.
     batch_gpu           = None,     # Limit batch size per GPU. None = no limit.
     total_nimg          = 8<<30,    # Train for a total of N training images.
     slice_nimg          = None,     # Train for a maximum of N training images in one invocation. None = no limit.
@@ -168,36 +165,7 @@ def training_loop(
         from datautils.openimages import get_openimages_dataloader
         single_image_mix = min(batch_gpu - 1, int(batch_gpu * single_image_mix))
         single_image_dataset = dnnlib.util.construct_class_by_name(class_name='datautils.SingleImages', **{k: v for k, v in dataset_kwargs.items() if k != "class_name"})
-    dist.print0('Fetching a sample item to configure network...')
-    raw_sample = dataset_obj[0]
-
-    # Manually mimic the logic from your CustomLitCollate function for a single item
-    num_available_views = raw_sample['image'].shape[0]
-    if num_available_views < 2:
-        raise ValueError("Dataset items must have at least 2 views to create a source/target pair.")
-
-    idx1, idx2 = random.sample(range(num_available_views), 2)
-    ref_image = raw_sample['image'][idx1]
-
-    # 1. Sanitize the camera parameters
-    c2w_1 = torch.as_tensor(raw_sample['c2w'][idx1], dtype=torch.float32)
-    intrinsics_1 = torch.as_tensor(raw_sample['fxfycxcy'][idx1], dtype=torch.float32)
-    c2w_2 = torch.as_tensor(raw_sample['c2w'][idx2], dtype=torch.float32)
-    intrinsics_2 = torch.as_tensor(raw_sample['fxfycxcy'][idx2], dtype=torch.float32)
-
-    # 2. Compute the full 4x4 relative pose
-    full_tgt2src = torch.linalg.inv(c2w_2) @ c2w_1
-
-    # 3. Slice the 4x4 matrix to get the 3x4 pose (12 elements) required by the function
-    pose_matrix_12_elements = full_tgt2src[:3, :]
-
-    # 4. Call the function with the correctly shaped 12-element pose
-    ref_label = compose_geometry(
-        tgt2src=pose_matrix_12_elements,
-        src_K=intrinsics_1,
-        tgt_K=intrinsics_2,
-        imsize=64
-    )
+    ref_image, _, ref_label = (dataset_obj[0][("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
     ref_label = ref_label.reshape((-1,))
     test_dataset_kwargs = {k: v for k, v in dataset_kwargs.items() if k != "split"}
     dist.print0('Setting up encoder...')
@@ -247,7 +215,6 @@ def training_loop(
     collate_fn_instance = CustomLitCollate() # Instantiate our collate function
     # Update the data_loader_kwargs to use our collate function
     data_loader_kwargs['collate_fn'] = collate_fn_instance
-    data_loader_kwargs.pop('class_name', None)
     dataset_iterator = iter(torch.utils.data.DataLoader(
     dataset=dataset_obj, 
     sampler=dataset_sampler,
@@ -258,19 +225,15 @@ def training_loop(
         single_image_sampler = misc.InfiniteSampler(dataset=dataset_obj, rank=dist.get_rank(), num_replicas=dist.get_world_size(), seed=seed, start_idx=state.cur_nimg)
         single_image_iterator = iter(dnnlib.util.construct_class_by_name(dataset=single_image_dataset, sampler=single_images_sampler,  batch_size=single_image_mix, **data_loader_kwargs))
     if dist.get_rank() == 0 and eval_samples:
-        if test_dataset_path is not None:
-            test_dataset_kwargs['path'] = test_dataset_path
         test_dataset_obj = dnnlib.util.construct_class_by_name(split="test", **test_dataset_kwargs)
         test_dataset_loader = torch.utils.data.DataLoader(test_dataset_obj, batch_size=eval_samples, shuffle=False, num_workers=1, drop_last=False, pin_memory=False, persistent_workers=True)  
     prev_status_nimg = state.cur_nimg
     cumulative_training_time = 0
     start_nimg = state.cur_nimg
     stats_jsonl = None
-    start_iter = state.cur_nimg // batch_size
-    total_iters = stop_at_nimg // batch_size
-    progress_bar = tqdm(range(start_iter, total_iters), initial=start_iter, total=total_iters, unit="iter", desc="Training", leave=True)
-    for _ in progress_bar:
+    while True:
         done = (state.cur_nimg >= stop_at_nimg)
+
         # Report status.
         if status_nimg is not None and (done or state.cur_nimg % status_nimg == 0) and (state.cur_nimg != start_nimg or start_nimg == 0):
             cur_time = time.time()
@@ -310,22 +273,7 @@ def training_loop(
                 if eval_samples and samples_nimg is not None and (done or state.cur_nimg % samples_nimg == 0) and (state.cur_nimg != start_nimg or start_nimg == 0):
                     with torch.no_grad():
                         net.eval()
-                        dist.print0('Setting up test dataloader for sample generation...')
-                        test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=cache_dir)
-                      
-                        test_dataset_loader = torch.utils.data.DataLoader(
-                            test_dataset_obj,
-                            batch_size=eval_samples,
-                            collate_fn=collate_fn_instance,
-                            shuffle=False,
-                            num_workers=data_loader_kwargs['num_workers'],
-                            pin_memory=True
-                        )
-                        try:
-                            data = next(iter(test_dataset_loader))
-                        except StopIteration:
-                            dist.print0('Test dataloader is empty.')
-                            return
+                        data = next(iter(test_dataset_loader))
                         src_image, tgt_image, geometry = (data[("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
                         src = encoder.encode_latents(src_image.to(device))
                         tgt = encoder.encode_latents(tgt_image.to(device))
@@ -415,6 +363,7 @@ def training_loop(
             break
 
         torch.distributed.barrier()
+
         # Evaluate loss and accumulate gradients.
         batch_start_time = time.time()
         misc.set_random_seed(seed, dist.get_rank(), state.cur_nimg)
@@ -450,7 +399,6 @@ def training_loop(
                 src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input) if depth_model is not None else src_image
                 loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
                 training_stats.report('Loss/loss', loss)
-                progress_bar.set_postfix(loss=loss.mean().item())
                 loss.sum().mul(loss_scaling / batch_gpu_total).backward()
 
         # Run optimizer and update weights.
@@ -469,6 +417,5 @@ def training_loop(
         if ema is not None:
             ema.update(cur_nimg=state.cur_nimg, batch_size=batch_size)
         cumulative_training_time += time.time() - batch_start_time
-        
 
-
+#----------------------------------------------------------------------------

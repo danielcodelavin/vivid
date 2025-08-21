@@ -67,17 +67,9 @@ def compose_geometry(tgt2src, src_K, tgt_K, imsize=64):
     Uses image size to fit the used intrinsics
     """
     mean, std = MEAN.clone().to(device=tgt2src.device, dtype=tgt2src.dtype), STD.clone().to(device=tgt2src.device, dtype=tgt2src.dtype)
-    # print("--- DEBUGGING COMPOSE_GEOMETRY ---")
-    # print(f"Shape of 'mean': {mean.shape}")
-    # print(f"Data type of 'mean': {mean.dtype}")
-    # print(f"Shape of 'mean[12:]': {mean[12:].shape}")
-    # print(f"Value of 'imsize': {imsize}")
-    # print(f"Type of 'imsize': {type(imsize)}")
-    # print("------------------------------------")
     mean[12:] *= (imsize/64)
     std[12:] *= (imsize/64) ** 2
-    
-    geometry = torch.cat((tgt2src.reshape(*tgt2src.shape[:-2], 12), src_K, tgt_K), -1)
+    geometry = torch.cat((tgt2src.reshape(*tgt2src.shape[:-2], 12), compose_K(src_K), compose_K(tgt_K)), -1)
     return torch.where(std > 0, (geometry - mean) / std, torch.zeros_like(geometry))
 
 
