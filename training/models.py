@@ -165,7 +165,7 @@ class Block(torch.nn.Module):
         if self.flavor == 'enc':
             if self.conv_skip is not None:
                 x = self.conv_skip(x)
-            x = normalize(x, dim=1) # pixel norm
+            x = normalize(x, dim=1)
 
         # Residual branch.
         y = self.conv_res0(mp_silu(x))
@@ -181,15 +181,19 @@ class Block(torch.nn.Module):
         x = mp_sum(x, y, t=self.res_balance)
 
         # Self-attention.
-        # Note: torch.nn.functional.scaled_dot_product_attention() could be used here,
-        # but we haven't done sufficient testing to verify that it produces identical results.
         if self.num_heads != 0:
-            y = self.attn_qkv(x)
-            y = y.reshape(y.shape[0], self.num_heads, -1, 3, y.shape[2] * y.shape[3])
-            q, k, v = normalize(y, dim=2).unbind(3) # pixel norm & split
-            w = torch.einsum('nhcq,nhck->nhqk', q, k / np.sqrt(q.shape[2])).softmax(dim=3)
-            y = torch.einsum('nhqk,nhck->nhcq', w, v)
-            y = self.attn_proj(y.reshape(*x.shape))
+            B, C, H, W = x.shape
+            S = H * W
+            D_head = C // self.num_heads
+            
+            qkv = self.attn_qkv(x)
+            qkv = qkv.view(B, self.num_heads, D_head * 3, S).permute(0, 1, 3, 2) # Shape: [B, n_heads, S, D_head*3]
+            q, k, v = qkv.chunk(3, dim=-1) # Shape: [B, n_heads, S, D_head] each
+            
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+            
+            y = y.permute(0, 1, 3, 2).reshape(B, C, H, W)
+            y = self.attn_proj(y)
             x = mp_sum(x, y, t=self.attn_balance)
 
         # Clip activations.
@@ -239,13 +243,14 @@ class XAttnBlock(torch.nn.Module):
         self.attn_proj = MPConv(out_channels, out_channels, kernel=[1,1]) if self.num_heads != 0 else None
         self.epipolar_mixing = torch.nn.Parameter(torch.zeros((4, self.num_heads, ))) if self.num_heads != 0 and epipolar_attention_bias else None
 
+
     def forward(self, x, features, emb, geometry=None):
         # Main branch.
         x = resample(x, f=self.resample_filter, mode=self.resample_mode)
         if self.flavor == 'enc':
             if self.conv_skip is not None:
                 x = self.conv_skip(x)
-            x = normalize(x, dim=1) # pixel norm
+            x = normalize(x, dim=1)
 
         # Residual branch.
         y = self.conv_res0(mp_silu(x))
@@ -261,24 +266,33 @@ class XAttnBlock(torch.nn.Module):
         x = mp_sum(x, y, t=self.res_balance)
 
         # Self-attention.
-        # Note: torch.nn.functional.scaled_dot_product_attention() could be used here,
-        # but we haven't done sufficient testing to verify that it produces identical results.
         if self.num_heads != 0:
-            y = self.attn_qkv(x)
-            z = self.x_attn_kv(features)
-            y = y.reshape(y.shape[0], self.num_heads, -1, 3, y.shape[2] * y.shape[3])
-            z = z.reshape(z.shape[0], self.num_heads, -1, 2, z.shape[2] * z.shape[3])
-            q, k, v = normalize(y, dim=2).unbind(3)
-            x_k, x_v = normalize(z, dim=2).unbind(3)
-            k, v = torch.concat([k, x_k], -1), torch.concat([v, x_v], -1)
-            w = torch.einsum('nhcq,nhck->nhqk', q, k / np.sqrt(q.shape[2]))
-            if self.epipolar_mixing is not None:
-                epipolar_corr = get_epipolar_dist(geometry, self.imsize, self.imsize // x.shape[-1], w.device)
-                epipolar_w = get_epipolar_attn(epipolar_corr, self.epipolar_mixing, patch_size=self.imsize // x.shape[-1])
-                w = w + torch.concat([torch.zeros_like(epipolar_w), epipolar_w], -1).to(dtype=w.dtype)
-            w = w.softmax(dim=3)
-            y = torch.einsum('nhqk,nhck->nhcq', w, v)       
-            y = self.attn_proj(y.reshape(*x.shape))
+            B, C, H, W = x.shape
+            S_self = H * W
+            D_head = C // self.num_heads
+
+            # Get Q, K, V for self-attention from the decoder stream (x)
+            qkv_self = self.attn_qkv(x)
+            qkv_self = qkv_self.view(B, self.num_heads, D_head * 3, S_self).permute(0, 1, 3, 2)  # .view is we flatten the spatial dims H and W into sequence length S . we also separate channels into num_heads and head_dim
+            # we swap the last two dimensions, namely Shape: [B, 2, 256, 192] -> [B, n_heads, S, D_head*3]
+            q, k_self, v_self = qkv_self.chunk(3, dim=-1)
+
+            # Get K, V for cross-attention from the encoder stream (features)
+            S_cross = features.shape[2] * features.shape[3]
+            kv_cross = self.x_attn_kv(features)
+            kv_cross = kv_cross.view(B, self.num_heads, D_head * 2, S_cross).permute(0, 1, 3, 2)
+            k_cross, v_cross = kv_cross.chunk(2, dim=-1)
+
+            # Combine keys and values for joint attention
+            k = torch.cat([k_self, k_cross], dim=2)
+            v = torch.cat([v_self, v_cross], dim=2)
+
+            # Use the memory-efficient scaled dot-product attention
+            y = torch.nn.functional.scaled_dot_product_attention(q, k, v)
+            
+            
+            y = y.permute(0, 1, 3, 2).reshape(B, C, H, W)
+            y = self.attn_proj(y)
             x = mp_sum(x, y, t=self.attn_balance)
 
         # Clip activations.

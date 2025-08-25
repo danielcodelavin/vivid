@@ -32,11 +32,12 @@ from torch_utils import distributed as dist
 from torch_utils import training_stats
 from torch_utils import persistence
 from torch_utils import misc
-from training.utils import add_depth, compose_geometry, open_tensorboard_process, resolve_model, resolve_depth_model
+from training.utils import add_depth, compose_geometry, resolve_model, resolve_depth_model  # open_tensorboard_process,
 from calculate_metrics import get_metrics
 from .custom_litdata_loader import CustomLitCollate , CustomLitDataset
 from tqdm import tqdm
-import torch.profiler
+import torch.cuda
+
 
 @persistence.persistent_class
 class NVLoss:
@@ -136,9 +137,9 @@ def training_loop(
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
 
-    if dist.get_rank() == 0 and debug is None:
-        writer = SummaryWriter(log_dir=run_dir)
-        open_tensorboard_process(run_dir)
+    # if dist.get_rank() == 0 and debug is None:
+    #     writer = SummaryWriter(log_dir=run_dir)
+    #     open_tensorboard_process(run_dir)
 
 
     # Validate batch size.
@@ -218,6 +219,7 @@ def training_loop(
         ] + ([torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device)] if net.super_res else []), 
         max_nesting=2)
 
+
     # Setup training state.
     dist.print0('Setting up training state...')
     state = dnnlib.EasyDict(cur_nimg=0, total_elapsed_time=0)
@@ -248,7 +250,7 @@ def training_loop(
     # Update the data_loader_kwargs to use our collate function
     data_loader_kwargs['collate_fn'] = collate_fn_instance
     data_loader_kwargs.pop('class_name', None)
-    dataset_iterator = iter(torch.utils.data.DataLoader(
+    dataset_iterator = iter(torch.utils.data.DataLoader(  ### CULPRIT 36GB VRAM
     dataset=dataset_obj, 
     sampler=dataset_sampler,
     batch_size=batch_gpu,
@@ -300,8 +302,8 @@ def training_loop(
                     stats_jsonl = open(os.path.join(run_dir, 'stats.jsonl'), 'at')
                 fmt = {'Progress/tick': '%.0f', 'Progress/kimg': '%.3f', 'timestamp': '%.3f'}
                 items = [(name, value.mean) for name, value in training_stats.default_collector.as_dict().items()] + [('timestamp', time.time())]
-                for name, value in items:
-                    writer.add_scalar(name, value, state.cur_nimg // batch_size)
+                # for name, value in items:
+                #     writer.add_scalar(name, value, state.cur_nimg // batch_size)
                 items = [f'"{name}": ' + (fmt.get(name, '%g') % value if np.isfinite(value) else 'NaN') for name, value in items]
                 stats_jsonl.write('{' + ', '.join(items) + '}\n')
                 stats_jsonl.flush()
@@ -350,8 +352,8 @@ def training_loop(
                         PIL.Image.fromarray(
                             samples_grid.permute(1, 2, 0).numpy()
                         ).save(os.path.join(run_dir, "results", f'generated-samples-{state.cur_nimg//1000:07d}.png'))
-                        writer.add_image("Image/samples", samples_grid, state.cur_nimg // batch_size)
-                        writer.flush()
+                        # writer.add_image("Image/samples", samples_grid, state.cur_nimg // batch_size)
+                        # writer.flush()
 
                         # Up sample with SR model if exists
                         if sr_model is not None:
@@ -365,8 +367,8 @@ def training_loop(
                             PIL.Image.fromarray(
                                 sr_samples_grid.permute(1, 2, 0).numpy()
                             ).save(os.path.join(run_dir, "results", f'generated-sr-samples-{state.cur_nimg//1000:07d}.png'))
-                            writer.add_image("Image/sr-samples", sr_samples_grid, state.cur_nimg // batch_size)  
-                            writer.flush()
+                            # writer.add_image("Image/sr-samples", sr_samples_grid, state.cur_nimg // batch_size)  
+                            # writer.flush()
 
             # Update progress and check for abort.
             dist.update_progress(state.cur_nimg // 1000, stop_at_nimg // 1000)
@@ -381,12 +383,12 @@ def training_loop(
             metrics_mid = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=dict(**test_dataset_kwargs,range_selection="mid"))
             metrics_long = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=dict(**test_dataset_kwargs,range_selection="long"))
             net.train()
-            if dist.get_rank() == 0:
-                for name, value in {f"Metrics/mid_{k}": v for k, v in metrics_mid.items()}.items():
-                    writer.add_scalar(name, value, state.cur_nimg // batch_size)
-                for name, value in {f"Metrics/long_{k}": v for k, v in metrics_long.items()}.items():
-                    writer.add_scalar(name, value, state.cur_nimg // batch_size)
-                writer.flush()
+            # if dist.get_rank() == 0:
+            #     for name, value in {f"Metrics/mid_{k}": v for k, v in metrics_mid.items()}.items():
+            #         writer.add_scalar(name, value, state.cur_nimg // batch_size)
+            #     for name, value in {f"Metrics/long_{k}": v for k, v in metrics_long.items()}.items():
+            #         writer.add_scalar(name, value, state.cur_nimg // batch_size)
+            #     writer.flush()
 
         # Save network snapshot.
         if snapshot_nimg is not None and state.cur_nimg % snapshot_nimg == 0 and (state.cur_nimg != start_nimg or start_nimg == 0) and dist.get_rank() == 0:
@@ -409,10 +411,10 @@ def training_loop(
             misc.check_ddp_consistency(net)
 
         # Done?
-        if done:
-            if dist.get_rank() == 0 and debug is None:
-                writer.close()
-            break
+        # if done:
+        #     if dist.get_rank() == 0 and debug is None:
+        #         writer.close()
+        #     break
 
         torch.distributed.barrier()
         # Evaluate loss and accumulate gradients.
@@ -425,32 +427,35 @@ def training_loop(
                 if data is None: # Skip if the dataloader returned an empty batch
                     continue
 
-                # Check if we are in vanilla mode or multi-view mode based on the keys
+               
                 is_vanilla = 'src_image' in data
 
                 if is_vanilla:
-                    # Unpack data for VANILLA MODE (1-input)
+                     
                     src_image, tgt_image, geometry = data['src_image'], data['tgt_image'], data['geometry']
                     high_res = data.get('high_res_src_image', src_image) # Use high_res if available
                 else:
-                    # Unpack data for MULTI-VIEW MODE (2-inputs)
-                    # As requested, we only use the FIRST source view for now to keep the model unchanged.
+                   
+                    
                     src_image = data['src_image_1']
                     tgt_image = data['tgt_image']
                     geometry = data['geometry_1']
                     high_res = data.get('high_res_1', src_image) # Use high_res if available
 
-                    # data['src_image_2'] and data['geometry_2'] are loaded
-                    
+                  
                 
                 
                 src_image = encoder.encode_latents(src_image.to(device))
                 tgt_image = encoder.encode_latents(tgt_image.to(device))
                 geometry = geometry.to(device)
+                
                 src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input) if depth_model is not None else src_image
+                
                 loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
+                
                 training_stats.report('Loss/loss', loss)
                 progress_bar.set_postfix(loss=loss.mean().item())
+                
                 loss.sum().mul(loss_scaling / batch_gpu_total).backward()
 
         # Run optimizer and update weights.

@@ -4,6 +4,7 @@ import torch
 import litdata as ld
 import random
 from training.utils import compose_geometry
+import torchvision.transforms.functional as F
 
 # ======================================================================================
 # Configuration Flag
@@ -27,11 +28,14 @@ class CustomLitCollate:
             for scene in valid_samples:
                 num_available = scene['image'].shape[0]
                 idx1, idx2 = random.sample(range(num_available), 2)
-                
-                src_images.append(scene['image'][idx1])
-                tgt_images.append(scene['image'][idx2])
-                
-                
+
+                src_img_resized = F.resize(scene['image'][idx1], [64, 64], antialias=True)
+                tgt_img_resized = F.resize(scene['image'][idx2], [64, 64], antialias=True)
+
+                src_images.append(src_img_resized)
+                tgt_images.append(tgt_img_resized)
+
+
                 src_c2w = torch.as_tensor(scene['c2w'][idx1], dtype=torch.float32)
                 tgt_c2w = torch.as_tensor(scene['c2w'][idx2], dtype=torch.float32)
 

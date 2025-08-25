@@ -21,17 +21,17 @@ import torch
 from torch_utils import distributed as dist
 import dnnlib
 
-def open_tensorboard_process(summary_dir: str):
-        tbp = os.environ.get("TENSORBOARD_PORT")
-        command = "tensorboard --logdir {} --port {} --bind_all".format(
-            summary_dir, tbp
-        )
-        subprocess.Popen(
-            shlex.split(command),
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            env=os.environ.copy(),
-        )
+# def open_tensorboard_process(summary_dir: str):
+#         tbp = os.environ.get("TENSORBOARD_PORT")
+#         command = "tensorboard --logdir {} --port {} --bind_all".format(
+#             summary_dir, tbp
+#         )
+#         subprocess.Popen(
+#             shlex.split(command),
+#             stdout=subprocess.PIPE,
+#             stderr=subprocess.PIPE,
+#             env=os.environ.copy(),
+#         )
 
 
 # Precomputed stats for geometry normalization

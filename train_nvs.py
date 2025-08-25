@@ -48,7 +48,7 @@ def setup_training_config(preset='vivid-base', **opts):
 
 
     # Dataset.
-    path_to_dataset = '/storage/user/lavingal/re10k_test_chunks_all_views'
+    path_to_dataset = '/storage/user/lavingal/re10k_train_chunks_all_views'
     c.dataset_kwargs = dnnlib.EasyDict(class_name='datautils.RealEstate10K', path=path_to_dataset, split="train", imsize=64)
 
     
