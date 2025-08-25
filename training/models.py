@@ -17,6 +17,7 @@ import torch
 from torch_utils import persistence
 from torch_utils import misc
 from training.utils import get_epipolar_dist, get_warped_features
+from torch.utils.checkpoint import checkpoint
 import torch.nn.functional as F
 
 def get_epipolar_attn(epipolar_corr, epipolar_mixing, patch_size=1):
@@ -185,18 +186,19 @@ class Block(torch.nn.Module):
             B, C, H, W = x.shape
             S = H * W
             D_head = C // self.num_heads
-            
             qkv = self.attn_qkv(x)
-            qkv = qkv.view(B, self.num_heads, D_head * 3, S).permute(0, 1, 3, 2) # Shape: [B, n_heads, S, D_head*3]
-            q, k, v = qkv.chunk(3, dim=-1) # Shape: [B, n_heads, S, D_head] each
-            
+            qkv_reshaped = qkv.view(B, self.num_heads, D_head, 3, S)
+            qkv_normalized = normalize(qkv_reshaped, dim=2)
+            q, k, v = qkv_normalized.unbind(3) 
+            q = q.transpose(-1, -2)
+            k = k.transpose(-1, -2)
+            v = v.transpose(-1, -2)
             y = torch.nn.functional.scaled_dot_product_attention(q, k, v)
-            
-            y = y.permute(0, 1, 3, 2).reshape(B, C, H, W)
+            y = y.transpose(-1, -2).reshape(B, C, H, W)
+
             y = self.attn_proj(y)
             x = mp_sum(x, y, t=self.attn_balance)
-
-        # Clip activations.
+      
         if self.clip_act is not None:
             x = x.clip_(-self.clip_act, self.clip_act)
         return x
@@ -271,31 +273,35 @@ class XAttnBlock(torch.nn.Module):
             S_self = H * W
             D_head = C // self.num_heads
 
-            # Get Q, K, V for self-attention from the decoder stream (x)
-            qkv_self = self.attn_qkv(x)
-            qkv_self = qkv_self.view(B, self.num_heads, D_head * 3, S_self).permute(0, 1, 3, 2)  # .view is we flatten the spatial dims H and W into sequence length S . we also separate channels into num_heads and head_dim
-            # we swap the last two dimensions, namely Shape: [B, 2, 256, 192] -> [B, n_heads, S, D_head*3]
-            q, k_self, v_self = qkv_self.chunk(3, dim=-1)
 
-            # Get K, V for cross-attention from the encoder stream (features)
+            qkv_self = self.attn_qkv(x).view(B, self.num_heads, D_head, 3, S_self)
+            qkv_self = normalize(qkv_self, dim=2)
+            q, k_self, v_self = qkv_self.unbind(3) # q, k_self, v_self are each (B, H, D, S)
+
+
             S_cross = features.shape[2] * features.shape[3]
-            kv_cross = self.x_attn_kv(features)
-            kv_cross = kv_cross.view(B, self.num_heads, D_head * 2, S_cross).permute(0, 1, 3, 2)
-            k_cross, v_cross = kv_cross.chunk(2, dim=-1)
+            kv_cross = self.x_attn_kv(features).view(B, self.num_heads, D_head, 2, S_cross)
+            kv_cross = normalize(kv_cross, dim=2)
+            k_cross, v_cross = kv_cross.unbind(3) # k_cross, v_cross are each (B, H, D, S)
 
-            # Combine keys and values for joint attention
-            k = torch.cat([k_self, k_cross], dim=2)
-            v = torch.cat([v_self, v_cross], dim=2)
+            # 3. Combine K and V from both streams along the sequence dimension
+            k = torch.cat([k_self, k_cross], dim=3)
+            v = torch.cat([v_self, v_cross], dim=3)
 
-            # Use the memory-efficient scaled dot-product attention
+            # 4. Transpose all to (B, H, S, D) layout required by SDPA
+            q = q.transpose(-1, -2)
+            k = k.transpose(-1, -2)
+            v = v.transpose(-1, -2)
+
+            # 5. Perform memory-efficient attention
             y = torch.nn.functional.scaled_dot_product_attention(q, k, v)
-            
-            
-            y = y.permute(0, 1, 3, 2).reshape(B, C, H, W)
+
+            # 6. Reshape the output back to an image format
+            y = y.transpose(-1, -2).reshape(B, C, H, W)
             y = self.attn_proj(y)
             x = mp_sum(x, y, t=self.attn_balance)
 
-        # Clip activations.
+            # Clip activations.
         if self.clip_act is not None:
             x = x.clip_(-self.clip_act, self.clip_act)
         return x
@@ -466,6 +472,8 @@ class XAttnUNet(torch.nn.Module):
 
         self.out_conv = MPConv(cout, 3, kernel=[3,3])
 
+    # In training/models.py, inside the XAttnUNet class
+
     def forward(self, x, features, noise_labels, geometry):
         # Embedding.
         emb = self.emb_noise(self.emb_fourier(noise_labels))
@@ -476,6 +484,7 @@ class XAttnUNet(torch.nn.Module):
         # Encoder.
         x = torch.cat([x, torch.ones_like(x[:, :1])], dim=1)
         skips = []
+        
         for name, block in self.enc.items():
             if isinstance(block, XAttnBlock):
                 feature = features.pop(0)
@@ -488,11 +497,14 @@ class XAttnUNet(torch.nn.Module):
         for name, block in self.dec.items():
             if 'block' in name:
                 x = mp_cat(x, skips.pop(), t=self.concat_balance)
+            
+            # Apply checkpointing to every block call in the decoder
             if isinstance(block, XAttnBlock):
                 feature = features.pop(0)
-                x = block(x, feature, emb, geometry=geometry)
+                x = checkpoint(block, x, feature, emb, geometry, use_reentrant=False)
             else:
-                x = block(x, emb)
+                x = checkpoint(block, x, emb, use_reentrant=False)
+        
         x = self.out_conv(x, gain=self.out_gain)
         return x
 
@@ -512,6 +524,8 @@ class UNetEncoder(UNet):
             else:
                 break
 
+    # In training/models.py, inside the UNetEncoder class
+
     def forward(self, x, noise_labels, geometry):
         # Embedding.
         emb = self.emb_noise(self.emb_fourier(noise_labels))
@@ -524,8 +538,13 @@ class UNetEncoder(UNet):
         skips = []
         features = []
         for name, block in self.enc.items():
-            x = block(x) if 'conv' in name else block(x, emb)
-            if 'conv' not in name and block.num_heads > 0:
+            # Apply checkpointing to every block call
+            if 'conv' in name:
+                x = block(x)
+            else:
+                x = checkpoint(block, x, emb, use_reentrant=False)
+            
+            if 'conv' not in name and hasattr(block, 'num_heads') and block.num_heads > 0:
                 features.append(x)
             skips.append(x)
 
@@ -535,8 +554,11 @@ class UNetEncoder(UNet):
                 break
             if 'block' in name:
                 x = mp_cat(x, skips.pop(), t=self.concat_balance)
-            x = block(x, emb)
-            if block.num_heads > 0:
+            
+            # Apply checkpointing to every block call
+            x = checkpoint(block, x, emb, use_reentrant=False)
+            
+            if hasattr(block, 'num_heads') and block.num_heads > 0:
                 features.append(x)
         return features
 

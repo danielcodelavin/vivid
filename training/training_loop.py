@@ -37,6 +37,7 @@ from calculate_metrics import get_metrics
 from .custom_litdata_loader import CustomLitCollate , CustomLitDataset
 from tqdm import tqdm
 import torch.cuda
+import wandb
 
 
 @persistence.persistent_class

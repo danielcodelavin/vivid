@@ -159,7 +159,7 @@ def parse_nimg(s):
 @click.option('--outdir',           help='Where to save the results', metavar='DIR',            type=str, default='output/')
 @click.option('--cond',             help='Train class-conditional model', metavar='BOOL',       type=bool, default=True, show_default=True)
 @click.option('--preset',           help='Configuration preset', metavar='STR',                 type=str, default='vivid-base', show_default=True)
-@click.option('--sr-training',      help='Toggles training of SR model',                        is_flag=True)
+@click.option('--sr-training',      help='Toggles training of SR model',                        is_flag=False)
 
 # Hyperparameters.
 @click.option('--duration',         help='Training duration', metavar='NIMG',                   type=parse_nimg, default=None)
