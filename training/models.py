@@ -55,9 +55,9 @@ def resample(x, f=[1,1], mode='keep'):
     f = misc.const_like(x, f)
     c = x.shape[1]
     if mode == 'down':
-        return torch.nn.functional.conv2d(x, f.tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad,))
+        return torch.nn.functional.conv2d(x, f.tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad, pad))
     assert mode == 'up'
-    return torch.nn.functional.conv_transpose2d(x, (f * 4).tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad,))
+    return torch.nn.functional.conv_transpose2d(x, (f * 4).tile([c, 1, 1, 1]), groups=c, stride=2, padding=(pad, pad))
 
 #----------------------------------------------------------------------------
 # Magnitude-preserving SiLU (Equation 81).
@@ -121,7 +121,8 @@ class MPConv(torch.nn.Module):
         if w.ndim == 2:
             return x @ w.t()
         assert w.ndim == 4
-        return torch.nn.functional.conv2d(x, w, padding=(w.shape[-1]//2,))
+        pad = w.shape[-1] // 2
+        return torch.nn.functional.conv2d(x, w, padding=(pad, pad))
 
 #----------------------------------------------------------------------------
 # U-Net encoder/decoder block with optional self-attention (Figure 21).

@@ -38,6 +38,9 @@ from .custom_litdata_loader import CustomLitCollate , CustomLitDataset
 from tqdm import tqdm
 import torch.cuda
 import wandb
+from torch.nn.parallel import DistributedDataParallel as DDP
+from torch_utils import distributed as dist
+from fvcore.nn import FlopCountAnalysis
 
 
 @persistence.persistent_class
@@ -90,14 +93,69 @@ def learning_rate_schedule(cur_nimg, batch_size, ref_lr=100e-4, ref_batches=70e3
         lr *= min(cur_nimg / (rampup_Mimg * 1e6), 1)
     return lr
 
+#--------------------------------------------------------------------------
+# FLOP ANALYZER
+
+
+def analyze_flops(net, device, batch_size, img_resolution, img_channels, label_dim, sr_training):
+    if dist.get_rank() != 0:
+        return
+
+    print("--- Starting GFLOPs Analysis with Deepspeed FlopsProfiler ---")
+    model_for_flops = (net.module if isinstance(net, DDP) else net).to(device)
+    model_for_flops.eval()
+    
+    prof = None  # Initialize prof to None
+    try:
+        from deepspeed.profiling.flops_profiler import FlopsProfiler
+
+        # Dummy inputs
+        dummy_src = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+        dummy_dst = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+        dummy_sigma = torch.randn(batch_size, device=device)
+        dummy_geometry = torch.randn(batch_size, label_dim, device=device)
+        
+        conditioning_image = None
+        if sr_training:
+            conditioning_image = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+
+        # Initialize and run the profiler
+        prof = FlopsProfiler(model_for_flops)
+        prof.start_profile()
+
+        # Run a forward pass
+        _ = model_for_flops(dummy_src, dummy_dst, dummy_sigma, dummy_geometry, conditioning_image=conditioning_image)
+
+        # Get results
+        flops = prof.get_total_flops()
+        gflops = flops / 1e9
+        
+        print(f" GFLOPs per forward pass: {gflops:.2f} G")
+
+        if wandb.run:
+            wandb.summary["GFLOPs"] = gflops
+
+    except ImportError:
+        print("Deepspeed not installed. Skipping FLOPs analysis. Please run 'pip install deepspeed'")
+    except Exception as e:
+        import traceback
+        print(f"Could not complete FLOPs analysis due to an error: {e}")
+        traceback.print_exc() # Print the full traceback for debugging
+        
+    finally:
+       
+        if prof is not None:
+            prof.end_profile() 
+        model_for_flops.train()
+        print("--- GFLOPs Analysis Complete ---")
 #----------------------------------------------------------------------------
 # Main training loop.
 
 def training_loop(
-    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_test_chunks_all_views'),
+    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_train_chunks_all_views'),
     test_dataset_path   = '/storage/user/lavingal/re10k_test_chunks_all_views', 
     encoder_kwargs      = dict(class_name='training.encoders.StandardRGBEncoder'),
-    data_loader_kwargs  = dict(class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=1, prefetch_factor=2),
+    data_loader_kwargs  = dict(class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=8, prefetch_factor=2),
     network_kwargs      = dict(class_name='training.networks_edm2.Precond'),
     loss_kwargs         = dict(class_name='training.training_loop.NVDiffLoss'),
     optimizer_kwargs    = dict(class_name='torch.optim.Adam', betas=(0.9, 0.99)),
@@ -110,9 +168,9 @@ def training_loop(
     batch_gpu           = None,     # Limit batch size per GPU. None = no limit.
     total_nimg          = 8<<30,    # Train for a total of N training images.
     slice_nimg          = None,     # Train for a maximum of N training images in one invocation. None = no limit.
-    status_nimg         = 128<<10,  # Report status every N training images. None = disable.
+    status_nimg         = 80,  # Report status every N training images. None = disable.
     samples_nimg        = 1024<<10,  # Report status every N training images. None = disable.
-    metrics_nimg        = 1024<<10,  # Metric status every N training images. None = disable.
+    metrics_nimg        = 5000,  # Metric status every N training images. None = disable.
     snapshot_nimg       = 8<<20,    # Save network snapshot every N training images. None = disable.
     checkpoint_nimg     = 128<<20,  # Save state checkpoint every N training images. None = disable.
 
@@ -149,13 +207,14 @@ def training_loop(
         batch_gpu = batch_gpu_total
     num_accumulation_rounds = batch_gpu_total // batch_gpu
     assert batch_size == batch_gpu * num_accumulation_rounds * dist.get_world_size()
-    assert total_nimg % batch_size == 0
-    assert slice_nimg is None or slice_nimg % batch_size == 0
-    assert status_nimg is None or status_nimg % batch_size == 0
-    assert snapshot_nimg is None or (snapshot_nimg % batch_size == 0 and snapshot_nimg % 1024 == 0)
-    assert metrics_nimg is None or (metrics_nimg % batch_size == 0 and metrics_nimg % 1024 == 0)
-    assert checkpoint_nimg is None or (checkpoint_nimg % batch_size == 0 and checkpoint_nimg % 1024 == 0)
+    # assert total_nimg % batch_size == 0
+    # assert slice_nimg is None or slice_nimg % batch_size == 0
+    # assert status_nimg is None or status_nimg % batch_size == 0
+    # assert snapshot_nimg is None or (snapshot_nimg % batch_size == 0 and snapshot_nimg % 1024 == 0)
+    # assert metrics_nimg is None or (metrics_nimg % batch_size == 0 and metrics_nimg % 1024 == 0)
+    # assert checkpoint_nimg is None or (checkpoint_nimg % batch_size == 0 and checkpoint_nimg % 1024 == 0)
 
+    
     # Setup dataset, encoder, and network.
     dist.print0('Initializing custom LitData pipeline...')
     job_id = os.environ.get("SLURM_JOB_ID", f"local_{int(time.time())}")
@@ -170,55 +229,33 @@ def training_loop(
         from datautils.openimages import get_openimages_dataloader
         single_image_mix = min(batch_gpu - 1, int(batch_gpu * single_image_mix))
         single_image_dataset = dnnlib.util.construct_class_by_name(class_name='datautils.SingleImages', **{k: v for k, v in dataset_kwargs.items() if k != "class_name"})
-    dist.print0('Fetching a sample item to configure network...')
-    raw_sample = dataset_obj[0]
 
-    # Manually mimic the logic from your CustomLitCollate function for a single item
-    num_available_views = raw_sample['image'].shape[0]
-    if num_available_views < 2:
-        raise ValueError("Dataset items must have at least 2 views to create a source/target pair.")
 
-    idx1, idx2 = random.sample(range(num_available_views), 2)
-    ref_image = raw_sample['image'][idx1]
+    target_resolution = 256 if sr_training else 64
+    dist.print0(f'Setting up for a {target_resolution}x{target_resolution} resolution model...')
 
-    # 1. Sanitize the camera parameters
-    c2w_1 = torch.as_tensor(raw_sample['c2w'][idx1], dtype=torch.float32)
-    intrinsics_1 = torch.as_tensor(raw_sample['fxfycxcy'][idx1], dtype=torch.float32)
-    c2w_2 = torch.as_tensor(raw_sample['c2w'][idx2], dtype=torch.float32)
-    intrinsics_2 = torch.as_tensor(raw_sample['fxfycxcy'][idx2], dtype=torch.float32)
-
-    # 2. Compute the full 4x4 relative pose
-    full_tgt2src = torch.linalg.inv(c2w_2) @ c2w_1
-
-    # 3. Slice the 4x4 matrix to get the 3x4 pose (12 elements) required by the function
-    pose_matrix_12_elements = full_tgt2src[:3, :]
-
-    # 4. Call the function with the correctly shaped 12-element pose
-    ref_label = compose_geometry(
-        tgt2src=pose_matrix_12_elements,
-        src_K=intrinsics_1,
-        tgt_K=intrinsics_2,
-        imsize=64
-    )
-    ref_label = ref_label.reshape((-1,))
-    test_dataset_kwargs = {k: v for k, v in dataset_kwargs.items() if k != "split"}
     dist.print0('Setting up encoder...')
     encoder = dnnlib.util.construct_class_by_name(**encoder_kwargs)
-    ref_image = encoder.encode_latents(torch.as_tensor(ref_image).to(device).unsqueeze(0))
-    dist.print0('Constructing network...')
-    interface_kwargs = dict(img_resolution=ref_image.shape[-1], img_channels=ref_image.shape[1], label_dim=ref_label.shape[-1])
+    
+    
+    LABEL_DIM = 20
+    
+    dist.print0(f'Constructing network with resolution={target_resolution}x{target_resolution}...')
+    interface_kwargs = dict(img_resolution=target_resolution, img_channels=3, label_dim=LABEL_DIM)
+    
+    
     net = dnnlib.util.construct_class_by_name(**network_kwargs, **interface_kwargs)
     net.train().requires_grad_(True).to(device)
 
     # Print network summary.
-    if dist.get_rank() == 0:
-        misc.print_module_summary(net, [
-            torch.zeros([batch_gpu, net.img_channels + int(depth_model is not None), net.img_resolution, net.img_resolution], device=device),
-            torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device),
-            torch.ones([batch_gpu], device=device),
-            torch.zeros([batch_gpu, net.label_dim], device=device),
-        ] + ([torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device)] if net.super_res else []), 
-        max_nesting=2)
+    # if dist.get_rank() == 0:
+    #     misc.print_module_summary(net, [
+    #         torch.zeros([batch_gpu, net.img_channels + int(depth_model is not None), net.img_resolution, net.img_resolution], device=device),
+    #         torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device),
+    #         torch.ones([batch_gpu], device=device),
+    #         torch.zeros([batch_gpu, net.label_dim], device=device),
+    #     ] + ([torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device)] if net.super_res else []), 
+    #     max_nesting=2)
 
 
     # Setup training state.
@@ -246,31 +283,50 @@ def training_loop(
     dist.print0()
 
     # Main training loop.
-    dataset_sampler = misc.InfiniteSampler(dataset=dataset_obj, rank=dist.get_rank(), num_replicas=dist.get_world_size(), seed=seed, start_idx=state.cur_nimg)
     collate_fn_instance = CustomLitCollate() # Instantiate our collate function
     # Update the data_loader_kwargs to use our collate function
     data_loader_kwargs['collate_fn'] = collate_fn_instance
     data_loader_kwargs.pop('class_name', None)
-    dataset_iterator = iter(torch.utils.data.DataLoader(  ### CULPRIT 36GB VRAM
-    dataset=dataset_obj, 
-    sampler=dataset_sampler,
-    batch_size=batch_gpu,
-    **data_loader_kwargs
-    ))
+    
+    # For an IterableDataset, the 'sampler' must be None.
+    # The dataset itself controls the iteration and shuffling.
+    dataloader = torch.utils.data.DataLoader(
+        dataset=dataset_obj, 
+        sampler=None,
+        batch_size=batch_gpu,
+        **data_loader_kwargs
+    )
+    dataset_iterator = iter(dataloader)
     if single_image_mix:
         single_image_sampler = misc.InfiniteSampler(dataset=dataset_obj, rank=dist.get_rank(), num_replicas=dist.get_world_size(), seed=seed, start_idx=state.cur_nimg)
         single_image_iterator = iter(dnnlib.util.construct_class_by_name(dataset=single_image_dataset, sampler=single_images_sampler,  batch_size=single_image_mix, **data_loader_kwargs))
     if dist.get_rank() == 0 and eval_samples:
         if test_dataset_path is not None:
+            test_dataset_kwargs = dict(dataset_kwargs)
             test_dataset_kwargs['path'] = test_dataset_path
+        test_dataset_kwargs.pop('split', None) 
         test_dataset_obj = dnnlib.util.construct_class_by_name(split="test", **test_dataset_kwargs)
-        test_dataset_loader = torch.utils.data.DataLoader(test_dataset_obj, batch_size=eval_samples, shuffle=False, num_workers=1, drop_last=False, pin_memory=False, persistent_workers=True)  
+        test_dataset_loader = torch.utils.data.DataLoader(test_dataset_obj, batch_size=eval_samples, shuffle=False, num_workers=8, drop_last=False, pin_memory=False, persistent_workers=True)  
     prev_status_nimg = state.cur_nimg
     cumulative_training_time = 0
     start_nimg = state.cur_nimg
     stats_jsonl = None
     start_iter = state.cur_nimg // batch_size
     total_iters = stop_at_nimg // batch_size
+    lr = 0.0
+
+    if dist.get_rank() == 0:
+        analyze_flops(
+            net=ddp,
+            device=device,
+            batch_size=batch_gpu,
+            img_resolution=net.img_resolution,
+            img_channels=net.img_channels,
+            label_dim=net.label_dim,
+            sr_training=sr_training
+        )
+    dist.barrier()
+    dist.barrier()
     progress_bar = tqdm(range(start_iter, total_iters), initial=start_iter, total=total_iters, unit="iter", desc="Training", leave=True)
     for _ in progress_bar:
         done = (state.cur_nimg >= stop_at_nimg)
@@ -308,27 +364,51 @@ def training_loop(
                 items = [f'"{name}": ' + (fmt.get(name, '%g') % value if np.isfinite(value) else 'NaN') for name, value in items]
                 stats_jsonl.write('{' + ', '.join(items) + '}\n')
                 stats_jsonl.flush()
+                if wandb.run:
+                    stats_dict = training_stats.default_collector.as_dict()
+                    loss_stat = stats_dict.get('Loss/loss')
+                    log_dict = {"learning_rate": lr ,
+                                "kimg": state.cur_nimg / 1e3}
 
+                    if loss_stat is not None:
+                        log_dict["loss"] = loss_stat.mean   
+
+                    # Add all collected stats to the log dict
+                    for name, value in stats_dict.items():
+                        # Sanitize name for W&B and log the mean value
+                        log_dict[name.replace('/', '_')] = value.mean
+
+                    wandb.log(log_dict, step=state.cur_nimg)
                 # Generate sample images
                 if eval_samples and samples_nimg is not None and (done or state.cur_nimg % samples_nimg == 0) and (state.cur_nimg != start_nimg or start_nimg == 0):
                     with torch.no_grad():
                         net.eval()
                         dist.print0('Setting up test dataloader for sample generation...')
+                        
+                        
+
+                       
                         test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=cache_dir)
                       
                         test_dataset_loader = torch.utils.data.DataLoader(
                             test_dataset_obj,
                             batch_size=eval_samples,
                             collate_fn=collate_fn_instance,
-                            shuffle=False,
+                            shuffle=False, # Shuffle is handled by LitData, not the DataLoader for iterable datasets
                             num_workers=data_loader_kwargs['num_workers'],
                             pin_memory=True
                         )
+
                         try:
+                            # Simply get the next (and only) batch we need for visualization
                             data = next(iter(test_dataset_loader))
                         except StopIteration:
-                            dist.print0('Test dataloader is empty.')
-                            return
+                            dist.print0('Test dataloader is empty. Skipping sample generation.')
+                            # Continue to the next part of the loop instead of returning
+                            continue 
+                        
+                    
+
                         src_image, tgt_image, geometry = (data[("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
                         src = encoder.encode_latents(src_image.to(device))
                         tgt = encoder.encode_latents(tgt_image.to(device))
@@ -353,6 +433,13 @@ def training_loop(
                         PIL.Image.fromarray(
                             samples_grid.permute(1, 2, 0).numpy()
                         ).save(os.path.join(run_dir, "results", f'generated-samples-{state.cur_nimg//1000:07d}.png'))
+
+
+                        if dist.get_rank() == 0 and wandb.run:
+                            wandb.log(
+                                {"Generated Samples": wandb.Image(samples_grid)},
+                                step=state.cur_nimg
+                            )
                         # writer.add_image("Image/samples", samples_grid, state.cur_nimg // batch_size)
                         # writer.flush()
 
@@ -381,9 +468,17 @@ def training_loop(
         # Compute metrics
         if metrics_nimg is not None and (done or state.cur_nimg % metrics_nimg == 0) and (state.cur_nimg != start_nimg):
             net.eval()
-            metrics_mid = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=dict(**test_dataset_kwargs,range_selection="mid"))
-            metrics_long = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=dict(**test_dataset_kwargs,range_selection="long"))
+            # Calculate metrics on the whole test set without any range filtering
+            metrics = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=test_dataset_kwargs)
             net.train()
+
+
+            if dist.get_rank() == 0 and wandb.run:
+                
+                wandb_metrics = {f"Metrics/{key}": value for key, value in metrics.items()}
+                
+                wandb.log(wandb_metrics, step=state.cur_nimg)
+            
             # if dist.get_rank() == 0:
             #     for name, value in {f"Metrics/mid_{k}": v for k, v in metrics_mid.items()}.items():
             #         writer.add_scalar(name, value, state.cur_nimg // batch_size)
@@ -475,6 +570,7 @@ def training_loop(
         if ema is not None:
             ema.update(cur_nimg=state.cur_nimg, batch_size=batch_size)
         cumulative_training_time += time.time() - batch_start_time
-        
 
-
+    dist.print0('Training done.')
+    if dist.get_rank() == 0 and wandb.run:
+        wandb.finish()

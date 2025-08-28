@@ -8,7 +8,7 @@
 # Attribution-NonCommercial-ShareAlike 4.0 International License.
 # You should have received a copy of the license along with this
 # work. If not, see http://creativecommons.org/licenses/by-nc-sa/4.0/
-
+import wandb
 import datetime
 import os
 import re
@@ -44,7 +44,7 @@ def setup_training_config(preset='vivid-base', **opts):
         if opts.get(key, None) is None:
             opts[key] = value
 
-    c.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=1, prefetch_factor=2)
+    c.data_loader_kwargs = dnnlib.EasyDict(pin_memory=True, num_workers=8, prefetch_factor=2)
 
 
     # Dataset.
@@ -128,6 +128,25 @@ def launch_training(run_dir, c):
         for path in python_files:
             os.makedirs(os.path.dirname(path.replace("./", code_dir + os.path.sep)), exist_ok=True)
             shutil.copy(path, path.replace("./", code_dir + os.path.sep))
+    
+    
+    wandb_config = {
+        "project": "LVSM",
+        "entity": "internetbootcamp",
+        "run_name": "vivid-vanilla_1",
+        "enabled": True
+    }
+    if dist.get_rank() == 0 and wandb_config["enabled"]:
+        wandb.init(
+            project=wandb_config["project"],
+            entity=wandb_config["entity"],
+            name=wandb_config["run_name"],
+            dir=run_dir,
+            config=c 
+        )
+   
+
+
 
     torch.distributed.barrier()
     dnnlib.util.Logger(file_name=os.path.join(run_dir, 'log.txt'), file_mode='a', should_flush=True)
@@ -190,11 +209,11 @@ def parse_nimg(s):
 @click.option('--bench',            help='Enable cuDNN benchmarking', metavar='BOOL',           type=bool, default=True, show_default=True)
 
 # I/O-related options.
-@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='128Ki', show_default=True)
-@click.option('--samples',          help='Interval of sample generation', metavar='NIMG',       type=parse_nimg, default='1024Ki', show_default=True)
-@click.option('--metrics',          help='Interval of metrics prints', metavar='NIMG',          type=parse_nimg, default='8Mi', show_default=True)
-@click.option('--snapshot',         help='Interval of network snapshots', metavar='NIMG',       type=parse_nimg, default='8Mi', show_default=True)
-@click.option('--checkpoint',       help='Interval of training checkpoints', metavar='NIMG',    type=parse_nimg, default='16Mi', show_default=True)
+@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='80', show_default=True)
+@click.option('--samples',          help='Interval of sample generation', metavar='NIMG',       type=parse_nimg, default='80', show_default=True)
+@click.option('--metrics',          help='Interval of metrics prints', metavar='NIMG',          type=parse_nimg, default='5000', show_default=True)
+@click.option('--snapshot',         help='Interval of network snapshots', metavar='NIMG',       type=parse_nimg, default='40Mi', show_default=True)
+@click.option('--checkpoint',       help='Interval of training checkpoints', metavar='NIMG',    type=parse_nimg, default='5000', show_default=True)
 @click.option('--seed',             help='Random seed', metavar='INT',                          type=int, default=0, show_default=True)
 @click.option('--dry-run',          help='Print training options and exit',                     is_flag=True)
 
