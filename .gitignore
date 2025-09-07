@@ -2,3 +2,7 @@
 /.output/
 output
 output/
+output_nonvanilla
+output_nonvanilla/
+/output_nonvanilla/
+.output_nonvanilla/

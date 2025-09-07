@@ -32,14 +32,14 @@ from torch_utils import distributed as dist
 from torch_utils import training_stats
 from torch_utils import persistence
 from torch_utils import misc
-from training.utils import add_depth, compose_geometry, resolve_model, resolve_depth_model  # open_tensorboard_process,
+from training.utils import add_depth, compose_geometry, resolve_model, resolve_depth_model
 from calculate_metrics import get_metrics
-from .custom_litdata_loader import CustomLitCollate , CustomLitDataset
+from .custom_litdata_loader import CustomLitCollate , CustomLitDataset, VANILLA_MODE
 from tqdm import tqdm
 import torch.cuda
 import wandb
 from torch.nn.parallel import DistributedDataParallel as DDP
-from torch_utils import distributed as dist
+from torch.utils import data
 from fvcore.nn import FlopCountAnalysis
 
 
@@ -56,7 +56,13 @@ class NVLoss:
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         noise = torch.randn_like(tgt) * sigma
         denoised, logvar = net(src, tgt + noise, sigma, labels, return_logvar=True)
-        loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
+
+        if not VANILLA_MODE:
+            # In dual-source mode, `denoised` is [B,...] but `tgt` and `weight` are [2*B,...]
+            # We must slice tgt and weight to match the model's output.
+            loss = (weight[::2] / logvar.exp()) * ((denoised - tgt[::2]) ** 2) + logvar
+        else:
+            loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
         return loss
 
 
@@ -77,13 +83,12 @@ class SRNVLoss:
             tgt.shape[-1]
         )
         denoised, logvar = net(src, tgt + noise, sigma, labels, conditioning_image=low_res, return_logvar=True)
-        loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
+
+        if not VANILLA_MODE:
+            loss = (weight[::2] / logvar.exp()) * ((denoised - tgt[::2]) ** 2) + logvar
+        else:
+            loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
         return loss
-
-
-#----------------------------------------------------------------------------
-# Learning rate decay schedule used in the paper "Analyzing and Improving
-# the Training Dynamics of Diffusion Models".
 
 def learning_rate_schedule(cur_nimg, batch_size, ref_lr=100e-4, ref_batches=70e3, rampup_Mimg=10):
     lr = ref_lr
@@ -93,11 +98,7 @@ def learning_rate_schedule(cur_nimg, batch_size, ref_lr=100e-4, ref_batches=70e3
         lr *= min(cur_nimg / (rampup_Mimg * 1e6), 1)
     return lr
 
-#--------------------------------------------------------------------------
-# FLOP ANALYZER
-
-
-def analyze_flops(net, device, batch_size, img_resolution, img_channels, label_dim, sr_training):
+def analyze_flops(net, device, batch_size, img_resolution, img_channels, source_label_dim,target_label_dim, sr_training):
     if dist.get_rank() != 0:
         return
 
@@ -105,28 +106,34 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, label_d
     model_for_flops = (net.module if isinstance(net, DDP) else net).to(device)
     model_for_flops.eval()
     
-    prof = None  # Initialize prof to None
+    prof = None
     try:
         from deepspeed.profiling.flops_profiler import FlopsProfiler
 
-        # Dummy inputs
-        dummy_src = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
-        dummy_dst = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
-        dummy_sigma = torch.randn(batch_size, device=device)
-        dummy_geometry = torch.randn(batch_size, label_dim, device=device)
+        # Generate dummy tensors consistent with the selected data loading mode.
+        if VANILLA_MODE:
+            dummy_bs = batch_size
+            dummy_src = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+            dummy_dst = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+            dummy_sigma = torch.randn(dummy_bs, device=device)
+            dummy_geometry = torch.randn(dummy_bs, source_label_dim, device=device)
+        else: # Dual-source mode
+            dummy_bs = batch_size * 2
+            dummy_src = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+            dummy_dst = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+            dummy_sigma = torch.randn(dummy_bs, device=device)
+            dummy_geometry = torch.randn(dummy_bs, source_label_dim, device=device)
         
         conditioning_image = None
         if sr_training:
-            conditioning_image = torch.randn(batch_size, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
+            cond_bs = batch_size
+            conditioning_image = torch.randn(cond_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
 
-        # Initialize and run the profiler
         prof = FlopsProfiler(model_for_flops)
         prof.start_profile()
 
-        # Run a forward pass
-        _ = model_for_flops(dummy_src, dummy_dst, dummy_sigma, dummy_geometry, conditioning_image=conditioning_image)
+        _ = model_for_flops(src=dummy_src, dst=dummy_dst, sigma=dummy_sigma, geometry=dummy_geometry, conditioning_image=conditioning_image)
 
-        # Get results
         flops = prof.get_total_flops()
         gflops = flops / 1e9
         
@@ -134,22 +141,17 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, label_d
 
         if wandb.run:
             wandb.summary["GFLOPs"] = gflops
-
-    except ImportError:
-        print("Deepspeed not installed. Skipping FLOPs analysis. Please run 'pip install deepspeed'")
+    
     except Exception as e:
         import traceback
         print(f"Could not complete FLOPs analysis due to an error: {e}")
-        traceback.print_exc() # Print the full traceback for debugging
+        traceback.print_exc()
         
     finally:
-       
         if prof is not None:
             prof.end_profile() 
         model_for_flops.train()
         print("--- GFLOPs Analysis Complete ---")
-#----------------------------------------------------------------------------
-# Main training loop.
 
 def training_loop(
     dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_train_chunks_all_views'),
@@ -162,33 +164,33 @@ def training_loop(
     lr_kwargs           = dict(func_name='training.training_loop.learning_rate_schedule'),
     ema_kwargs          = dict(class_name='training.phema.PowerFunctionEMA'),
 
-    run_dir             = '.',      # Output directory.
-    seed                = 0,        # Global random seed.
-    batch_size          = 8,     # Total batch size for one training iteration.
-    batch_gpu           = None,     # Limit batch size per GPU. None = no limit.
-    total_nimg          = 8<<30,    # Train for a total of N training images.
-    slice_nimg          = None,     # Train for a maximum of N training images in one invocation. None = no limit.
-    status_nimg         = 80,  # Report status every N training images. None = disable.
-    samples_nimg        = 1024<<10,  # Report status every N training images. None = disable.
-    metrics_nimg        = 5000,  # Metric status every N training images. None = disable.
-    snapshot_nimg       = 8<<20,    # Save network snapshot every N training images. None = disable.
-    checkpoint_nimg     = 128<<20,  # Save state checkpoint every N training images. None = disable.
+    run_dir             = '.',
+    seed                = 0,
+    batch_size          = 512,
+    batch_gpu           = None,
+    total_nimg          = 8<<30,
+    slice_nimg          = None,
+    status_nimg         = 80,
+    samples_nimg        = 10000,
+    metrics_nimg        = 10000,
+    snapshot_nimg       = 10000,
+    checkpoint_nimg     = 10000,
 
-    loss_scaling        = 1,        # Loss scaling factor for reducing FP16 under/overflows.
-    force_finite        = True,     # Get rid of NaN/Inf gradients before feeding them to the optimizer.
-    cudnn_benchmark     = True,     # Enable torch.backends.cudnn.benchmark?
+    loss_scaling        = 1,
+    force_finite        = True,
+    cudnn_benchmark     = True,
     device              = torch.device('cuda'),
 
-    eval_samples        = 8,       # Number of samples to generate for logging. 0 = no generated samples
-    sr_training         = False,    # Toggle to train an SR model
-    single_image_mix    = None,     # Percent of per-gpu batch to train with single image augmentation. None = only multiview data
-    sr_model            = None,     # SR model to use for logging and metrics. None = log only current res
-    depth_model         = None,     # Depth model size to use for training
-    debug               = None,     # Disable logging
+    eval_samples        = 8,
+    sr_training         = False,
+    single_image_mix    = None,
+    sr_model            = None,
+    depth_model         = None,
+    debug               = None,
 ):
     params = locals()
     params.pop('device')
-    # Initialize.
+
     prev_status_time = time.time()
     misc.set_random_seed(seed, dist.get_rank())
     torch.backends.cudnn.benchmark = cudnn_benchmark
@@ -196,40 +198,36 @@ def training_loop(
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
 
-    # if dist.get_rank() == 0 and debug is None:
-    #     writer = SummaryWriter(log_dir=run_dir)
-    #     open_tensorboard_process(run_dir)
-
-
-    # Validate batch size.
     batch_gpu_total = batch_size // dist.get_world_size()
     if batch_gpu is None or batch_gpu > batch_gpu_total:
         batch_gpu = batch_gpu_total
     num_accumulation_rounds = batch_gpu_total // batch_gpu
     assert batch_size == batch_gpu * num_accumulation_rounds * dist.get_world_size()
-    # assert total_nimg % batch_size == 0
-    # assert slice_nimg is None or slice_nimg % batch_size == 0
-    # assert status_nimg is None or status_nimg % batch_size == 0
-    # assert snapshot_nimg is None or (snapshot_nimg % batch_size == 0 and snapshot_nimg % 1024 == 0)
-    # assert metrics_nimg is None or (metrics_nimg % batch_size == 0 and metrics_nimg % 1024 == 0)
-    # assert checkpoint_nimg is None or (checkpoint_nimg % batch_size == 0 and checkpoint_nimg % 1024 == 0)
 
-    
-    # Setup dataset, encoder, and network.
     dist.print0('Initializing custom LitData pipeline...')
     job_id = os.environ.get("SLURM_JOB_ID", f"local_{int(time.time())}")
     
-    cache_dir = f"/dev/shm/litdata_cache_{job_id}"
+    train_cache_dir = f"/dev/shm/litdata_cache_{job_id}_train"
+    test_cache_dir = f"/dev/shm/litdata_cache_{job_id}_test"
     if dist.get_rank() == 0:
-        os.makedirs(cache_dir, exist_ok=True)
-    dist.barrier()
-    dataset_obj = CustomLitDataset(path=dataset_kwargs['path'], cache_dir=cache_dir)
+        os.makedirs(train_cache_dir, exist_ok=True)
+        os.makedirs(test_cache_dir, exist_ok=True)
+    dist.barrier() 
+    
+    mode_str = 'vanilla' if VANILLA_MODE else 'dual_source'
+    
+    # Pass the explicit instruction when creating the dataset
+    dataset_obj = CustomLitDataset(
+        path=dataset_kwargs['path'],
+        cache_dir=train_cache_dir,
+        mode=mode_str
+    )
+
     if single_image_mix is not None and single_image_mix > 0:
         assert single_image_mix % batch_gpu > 0, "cant use less than 1 single image per GPU"
         from datautils.openimages import get_openimages_dataloader
         single_image_mix = min(batch_gpu - 1, int(batch_gpu * single_image_mix))
         single_image_dataset = dnnlib.util.construct_class_by_name(class_name='datautils.SingleImages', **{k: v for k, v in dataset_kwargs.items() if k != "class_name"})
-
 
     target_resolution = 256 if sr_training else 64
     dist.print0(f'Setting up for a {target_resolution}x{target_resolution} resolution model...')
@@ -237,28 +235,16 @@ def training_loop(
     dist.print0('Setting up encoder...')
     encoder = dnnlib.util.construct_class_by_name(**encoder_kwargs)
     
-    
-    LABEL_DIM = 20
-    
+    source_label_dim = 20
+    if VANILLA_MODE:
+        target_label_dim = source_label_dim
+    else:
+        target_label_dim = source_label_dim * 2
     dist.print0(f'Constructing network with resolution={target_resolution}x{target_resolution}...')
-    interface_kwargs = dict(img_resolution=target_resolution, img_channels=3, label_dim=LABEL_DIM)
-    
-    
+    interface_kwargs = dict(img_resolution=target_resolution, img_channels=3, source_label_dim=source_label_dim, target_label_dim=target_label_dim)
     net = dnnlib.util.construct_class_by_name(**network_kwargs, **interface_kwargs)
     net.train().requires_grad_(True).to(device)
 
-    # Print network summary.
-    # if dist.get_rank() == 0:
-    #     misc.print_module_summary(net, [
-    #         torch.zeros([batch_gpu, net.img_channels + int(depth_model is not None), net.img_resolution, net.img_resolution], device=device),
-    #         torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device),
-    #         torch.ones([batch_gpu], device=device),
-    #         torch.zeros([batch_gpu, net.label_dim], device=device),
-    #     ] + ([torch.zeros([batch_gpu, net.img_channels, net.img_resolution, net.img_resolution], device=device)] if net.super_res else []), 
-    #     max_nesting=2)
-
-
-    # Setup training state.
     dist.print0('Setting up training state...')
     state = dnnlib.EasyDict(cur_nimg=0, total_elapsed_time=0)
     ddp = torch.nn.parallel.DistributedDataParallel(net, device_ids=[device])
@@ -266,47 +252,49 @@ def training_loop(
     optimizer = dnnlib.util.construct_class_by_name(params=net.parameters(), **optimizer_kwargs)
     ema = dnnlib.util.construct_class_by_name(net=net, **ema_kwargs) if ema_kwargs is not None else None
 
-    # Init extra models
     sr_model = resolve_model(sr_model, name="SR")
     depth_model = resolve_depth_model(depth_model, device=device)
 
-    # Load previous checkpoint and decide how long to train.
     checkpoint = dist.CheckpointIO(state=state, net=net, loss_fn=loss_fn, optimizer=optimizer, ema=ema)
     checkpoint.load_latest(run_dir)
     stop_at_nimg = total_nimg
     if slice_nimg is not None:
         granularity = checkpoint_nimg if checkpoint_nimg is not None else snapshot_nimg if snapshot_nimg is not None else batch_size
-        slice_end_nimg = (state.cur_nimg + slice_nimg) // granularity * granularity # round down
+        slice_end_nimg = (state.cur_nimg + slice_nimg) // granularity * granularity
         stop_at_nimg = min(stop_at_nimg, slice_end_nimg)
     assert stop_at_nimg > state.cur_nimg
     dist.print0(f'Training from {state.cur_nimg // 1000} kimg to {stop_at_nimg // 1000} kimg ({(stop_at_nimg - state.cur_nimg) // batch_size} iters):')
     dist.print0()
 
-    # Main training loop.
-    collate_fn_instance = CustomLitCollate() # Instantiate our collate function
-    # Update the data_loader_kwargs to use our collate function
+    collate_fn_instance = CustomLitCollate()
     data_loader_kwargs['collate_fn'] = collate_fn_instance
     data_loader_kwargs.pop('class_name', None)
     
-    # For an IterableDataset, the 'sampler' must be None.
-    # The dataset itself controls the iteration and shuffling.
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset_obj, 
         sampler=None,
-        batch_size=batch_gpu,
+        batch_size=batch_gpu if VANILLA_MODE else batch_gpu * 2,
         **data_loader_kwargs
     )
     dataset_iterator = iter(dataloader)
+    
     if single_image_mix:
         single_image_sampler = misc.InfiniteSampler(dataset=dataset_obj, rank=dist.get_rank(), num_replicas=dist.get_world_size(), seed=seed, start_idx=state.cur_nimg)
-        single_image_iterator = iter(dnnlib.util.construct_class_by_name(dataset=single_image_dataset, sampler=single_images_sampler,  batch_size=single_image_mix, **data_loader_kwargs))
+        single_image_iterator = iter(dnnlib.util.construct_class_by_name(dataset=single_image_dataset, sampler=single_image_sampler,  batch_size=single_image_mix, **data_loader_kwargs))
+
     if dist.get_rank() == 0 and eval_samples:
-        if test_dataset_path is not None:
-            test_dataset_kwargs = dict(dataset_kwargs)
-            test_dataset_kwargs['path'] = test_dataset_path
-        test_dataset_kwargs.pop('split', None) 
-        test_dataset_obj = dnnlib.util.construct_class_by_name(split="test", **test_dataset_kwargs)
-        test_dataset_loader = torch.utils.data.DataLoader(test_dataset_obj, batch_size=eval_samples, shuffle=False, num_workers=8, drop_last=False, pin_memory=False, persistent_workers=True)  
+        dist.print0('Setting up test dataloader for sample generation...')
+        test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=test_cache_dir)
+        test_dataset_loader = torch.utils.data.DataLoader(
+            test_dataset_obj,
+            batch_size=eval_samples if VANILLA_MODE else eval_samples * 2,
+            collate_fn=collate_fn_instance,
+            shuffle=False,
+            num_workers=data_loader_kwargs['num_workers'],
+            pin_memory=True
+        )
+        test_dataset_iterator = iter(test_dataset_loader)
+
     prev_status_nimg = state.cur_nimg
     cumulative_training_time = 0
     start_nimg = state.cur_nimg
@@ -322,98 +310,82 @@ def training_loop(
             batch_size=batch_gpu,
             img_resolution=net.img_resolution,
             img_channels=net.img_channels,
-            label_dim=net.label_dim,
+            source_label_dim=source_label_dim,
+            target_label_dim= target_label_dim,
             sr_training=sr_training
         )
     dist.barrier()
-    dist.barrier()
+
     progress_bar = tqdm(range(start_iter, total_iters), initial=start_iter, total=total_iters, unit="iter", desc="Training", leave=True)
     for _ in progress_bar:
         done = (state.cur_nimg >= stop_at_nimg)
-        # Report status.
         if status_nimg is not None and (done or state.cur_nimg % status_nimg == 0) and (state.cur_nimg != start_nimg or start_nimg == 0):
             cur_time = time.time()
             state.total_elapsed_time += cur_time - prev_status_time
             cur_process = psutil.Process(os.getpid())
             cpu_memory_usage = sum(p.memory_info().rss for p in [cur_process] + cur_process.children(recursive=True))
             dist.print0(' '.join(['Status:',
-                'kimg',         f"{training_stats.report0('Progress/kimg',                              state.cur_nimg / 1e3):<9.1f}",
-                'iter',         f"{training_stats.report0('Progress/iter',                              state.cur_nimg / batch_size):<9.1f}",
-                'time',         f"{dnnlib.util.format_time(training_stats.report0('Timing/total_sec',   state.total_elapsed_time)):<12s}",
-                'sec/tick',     f"{training_stats.report0('Timing/sec_per_tick',                        cur_time - prev_status_time):<8.2f}",
-                'sec/kimg',     f"{training_stats.report0('Timing/sec_per_kimg',                        cumulative_training_time / max(state.cur_nimg - prev_status_nimg, 1) * 1e3):<7.3f}",
-                'maintenance',  f"{training_stats.report0('Timing/maintenance_sec',                     cur_time - prev_status_time - cumulative_training_time):<7.2f}",
-                'cpumem',       f"{training_stats.report0('Resources/cpu_mem_gb',                       cpu_memory_usage / 2**30):<6.2f}",
-                'gpumem',       f"{training_stats.report0('Resources/peak_gpu_mem_gb',                  torch.cuda.max_memory_allocated(device) / 2**30):<6.2f}",
-                'reserved',     f"{training_stats.report0('Resources/peak_gpu_mem_reserved_gb',         torch.cuda.max_memory_reserved(device) / 2**30):<6.2f}",
+                'kimg',         f"{training_stats.report0('Progress/kimg', state.cur_nimg / 1e3):<9.1f}",
+                'iter',         f"{training_stats.report0('Progress/iter', state.cur_nimg / batch_size):<9.1f}",
+                'time',         f"{dnnlib.util.format_time(training_stats.report0('Timing/total_sec', state.total_elapsed_time)):<12s}",
+                'sec/tick',     f"{training_stats.report0('Timing/sec_per_tick', cur_time - prev_status_time):<8.2f}",
+                'sec/kimg',     f"{training_stats.report0('Timing/sec_per_kimg', cumulative_training_time / max(state.cur_nimg - prev_status_nimg, 1) * 1e3):<7.3f}",
+                'maintenance',  f"{training_stats.report0('Timing/maintenance_sec', cur_time - prev_status_time - cumulative_training_time):<7.2f}",
+                'cpumem',       f"{training_stats.report0('Resources/cpu_mem_gb', cpu_memory_usage / 2**30):<6.2f}",
+                'gpumem',       f"{training_stats.report0('Resources/peak_gpu_mem_gb', torch.cuda.max_memory_allocated(device) / 2**30):<6.2f}",
+                'reserved',     f"{training_stats.report0('Resources/peak_gpu_mem_reserved_gb', torch.cuda.max_memory_reserved(device) / 2**30):<6.2f}",
             ]))
             cumulative_training_time = 0
             prev_status_nimg = state.cur_nimg
             prev_status_time = cur_time
             torch.cuda.reset_peak_memory_stats()
 
-            # Flush training stats.
             training_stats.default_collector.update()
             if dist.get_rank() == 0 and debug is None:
                 if stats_jsonl is None:
                     stats_jsonl = open(os.path.join(run_dir, 'stats.jsonl'), 'at')
                 fmt = {'Progress/tick': '%.0f', 'Progress/kimg': '%.3f', 'timestamp': '%.3f'}
                 items = [(name, value.mean) for name, value in training_stats.default_collector.as_dict().items()] + [('timestamp', time.time())]
-                # for name, value in items:
-                #     writer.add_scalar(name, value, state.cur_nimg // batch_size)
                 items = [f'"{name}": ' + (fmt.get(name, '%g') % value if np.isfinite(value) else 'NaN') for name, value in items]
                 stats_jsonl.write('{' + ', '.join(items) + '}\n')
                 stats_jsonl.flush()
                 if wandb.run:
                     stats_dict = training_stats.default_collector.as_dict()
                     loss_stat = stats_dict.get('Loss/loss')
-                    log_dict = {"learning_rate": lr ,
-                                "kimg": state.cur_nimg / 1e3}
-
+                    log_dict = {"learning_rate": lr , "kimg": state.cur_nimg / 1e3}
                     if loss_stat is not None:
                         log_dict["loss"] = loss_stat.mean   
-
-                    # Add all collected stats to the log dict
                     for name, value in stats_dict.items():
-                        # Sanitize name for W&B and log the mean value
                         log_dict[name.replace('/', '_')] = value.mean
-
                     wandb.log(log_dict, step=state.cur_nimg)
-                # Generate sample images
+
                 if eval_samples and samples_nimg is not None and (done or state.cur_nimg % samples_nimg == 0) and (state.cur_nimg != start_nimg or start_nimg == 0):
                     with torch.no_grad():
                         net.eval()
-                        dist.print0('Setting up test dataloader for sample generation...')
-                        
-                        
-
-                       
-                        test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=cache_dir)
-                      
-                        test_dataset_loader = torch.utils.data.DataLoader(
-                            test_dataset_obj,
-                            batch_size=eval_samples,
-                            collate_fn=collate_fn_instance,
-                            shuffle=False, # Shuffle is handled by LitData, not the DataLoader for iterable datasets
-                            num_workers=data_loader_kwargs['num_workers'],
-                            pin_memory=True
-                        )
-
                         try:
-                            # Simply get the next (and only) batch we need for visualization
-                            data = next(iter(test_dataset_loader))
+                            data = next(test_dataset_iterator)
                         except StopIteration:
-                            dist.print0('Test dataloader is empty. Skipping sample generation.')
-                            # Continue to the next part of the loop instead of returning
-                            continue 
+                            dist.print0('Resetting test dataloader iterator...')
+                            test_dataset_iterator = iter(test_dataset_loader)
+                            data = next(test_dataset_iterator)
                         
-                    
-
+                       
                         src_image, tgt_image, geometry = (data[("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
+                        
+                        if not VANILLA_MODE:
+                            # We only need one source and its geometry for sampling visualization.
+                            src_image = src_image[::2]
+                            tgt_image = tgt_image[::2]
+                            geometry = geometry[::2]
+                        
                         src = encoder.encode_latents(src_image.to(device))
                         tgt = encoder.encode_latents(tgt_image.to(device))
                         sampler_kwargs = {}
-                        src = add_depth(depth_model, data["sr_src_image"].to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
+                        
+                        src_for_depth = src_image if not sr_training else data["sr_src_image"]
+                        src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
+                    # up until here target correctly the same
+                    #    src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
                         if net.super_res:
                             low_res = torchvision.transforms.functional.resize(
                                 torchvision.transforms.functional.resize(tgt, tgt.shape[-1] // 4),
@@ -429,21 +401,12 @@ def training_loop(
                         else:
                             samples_grid = torchvision.utils.make_grid(torch.cat([src_image, predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
 
-                        # Save images localy
                         PIL.Image.fromarray(
                             samples_grid.permute(1, 2, 0).numpy()
                         ).save(os.path.join(run_dir, "results", f'generated-samples-{state.cur_nimg//1000:07d}.png'))
 
-
                         if dist.get_rank() == 0 and wandb.run:
-                            wandb.log(
-                                {"Generated Samples": wandb.Image(samples_grid)},
-                                step=state.cur_nimg
-                            )
-                        # writer.add_image("Image/samples", samples_grid, state.cur_nimg // batch_size)
-                        # writer.flush()
-
-                        # Up sample with SR model if exists
+                            wandb.log({"Generated Samples": wandb.Image(samples_grid)}, step=state.cur_nimg)
                         if sr_model is not None:
                             sr_src_image, sr_tgt_image, sr_geometry = (data["sr_" + k] for k in ["src_image", "tgt_image", "geometry"])
                             sr_src = encoder.encode_latents(sr_src_image.to(device))
@@ -455,38 +418,25 @@ def training_loop(
                             PIL.Image.fromarray(
                                 sr_samples_grid.permute(1, 2, 0).numpy()
                             ).save(os.path.join(run_dir, "results", f'generated-sr-samples-{state.cur_nimg//1000:07d}.png'))
-                            # writer.add_image("Image/sr-samples", sr_samples_grid, state.cur_nimg // batch_size)  
-                            # writer.flush()
 
-            # Update progress and check for abort.
             dist.update_progress(state.cur_nimg // 1000, stop_at_nimg // 1000)
             if state.cur_nimg == stop_at_nimg and state.cur_nimg < total_nimg:
                 dist.request_suspend()
             if dist.should_stop() or dist.should_suspend():
                 done = True
         
-        # Compute metrics
         if metrics_nimg is not None and (done or state.cur_nimg % metrics_nimg == 0) and (state.cur_nimg != start_nimg):
             net.eval()
-            # Calculate metrics on the whole test set without any range filtering
+            if test_dataset_path is not None:
+                test_dataset_kwargs = dict(dataset_kwargs)
+                test_dataset_kwargs['path'] = test_dataset_path
+            test_dataset_kwargs.pop('split', None)
             metrics = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=test_dataset_kwargs)
             net.train()
-
-
             if dist.get_rank() == 0 and wandb.run:
-                
                 wandb_metrics = {f"Metrics/{key}": value for key, value in metrics.items()}
-                
                 wandb.log(wandb_metrics, step=state.cur_nimg)
             
-            # if dist.get_rank() == 0:
-            #     for name, value in {f"Metrics/mid_{k}": v for k, v in metrics_mid.items()}.items():
-            #         writer.add_scalar(name, value, state.cur_nimg // batch_size)
-            #     for name, value in {f"Metrics/long_{k}": v for k, v in metrics_long.items()}.items():
-            #         writer.add_scalar(name, value, state.cur_nimg // batch_size)
-            #     writer.flush()
-
-        # Save network snapshot.
         if snapshot_nimg is not None and state.cur_nimg % snapshot_nimg == 0 and (state.cur_nimg != start_nimg or start_nimg == 0) and dist.get_rank() == 0:
             ema_list = ema.get() if ema is not None else optimizer.get_ema(net) if hasattr(optimizer, 'get_ema') else net
             ema_list = ema_list if isinstance(ema_list, list) else [(ema_list, '')]
@@ -498,63 +448,70 @@ def training_loop(
                 with open(os.path.join(run_dir, fname), 'wb') as f:
                     pickle.dump(data, f)
                 dist.print0('done')
-                del data # conserve memory
+                del data
 
-        # Save state checkpoint.
         if checkpoint_nimg is not None and (done or state.cur_nimg % checkpoint_nimg == 0) and state.cur_nimg != start_nimg:
             fname = f'training-state-{state.cur_nimg//1000:07d}.pt'
             checkpoint.save(os.path.join(run_dir, fname))
             misc.check_ddp_consistency(net)
 
-        # Done?
-        # if done:
-        #     if dist.get_rank() == 0 and debug is None:
-        #         writer.close()
-        #     break
+        if done:
+            break
 
         torch.distributed.barrier()
-        # Evaluate loss and accumulate gradients.
         batch_start_time = time.time()
         misc.set_random_seed(seed, dist.get_rank(), state.cur_nimg)
         optimizer.zero_grad(set_to_none=True)
         for round_idx in range(num_accumulation_rounds):
             with misc.ddp_sync(ddp, (round_idx == num_accumulation_rounds - 1)):
                 data = next(dataset_iterator, None)
-                if data is None: # Skip if the dataloader returned an empty batch
+                if data is None:
                     continue
-
                
-                is_vanilla = 'src_image' in data
-
-                if is_vanilla:
-                     
-                    src_image, tgt_image, geometry = data['src_image'], data['tgt_image'], data['geometry']
-                    high_res = data.get('high_res_src_image', src_image) # Use high_res if available
-                else:
-                   
-                    
-                    src_image = data['src_image_1']
-                    tgt_image = data['tgt_image']
-                    geometry = data['geometry_1']
-                    high_res = data.get('high_res_1', src_image) # Use high_res if available
-
-                  
-                
+                src_image = data['src_image']
+                tgt_image = data['tgt_image']
+                geometry = data['geometry']
+                high_res = data.get('high_res_src_image', src_image)
                 
                 src_image = encoder.encode_latents(src_image.to(device))
                 tgt_image = encoder.encode_latents(tgt_image.to(device))
                 geometry = geometry.to(device)
                 
-                src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input) if depth_model is not None else src_image
+                if depth_model is not None:
+                    src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input)
                 
-                loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
                 
+                if VANILLA_MODE:
+                    loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
+                else:
+                    # 1. Calculate the number of image pairs
+                    num_pairs = tgt_image.shape[0] // 2
+                    
+                    # 2. Generate one sigma value for each pair
+                    rnd_normal = torch.randn([num_pairs, 1, 1, 1], device=tgt_image.device)
+                    sigma_targets = (rnd_normal * loss_fn.P_std + loss_fn.P_mean).exp()
+                    
+                    # 3. Generate one unique noise tensor for each pair
+                    noise_pairs = torch.randn([num_pairs, *tgt_image.shape[1:]], device=tgt_image.device) * sigma_targets
+
+                    # 4. Duplicate the noise so that both images in a pair have the same noise
+                    noise = torch.repeat_interleave(noise_pairs, repeats=2, dim=0)
+                    
+                    # Add the paired noise to the target images
+                    noisy_targets_full = tgt_image + noise
+
+                    # The rest of the logic remains the same
+                    denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_targets, geometry=geometry, return_logvar=True)
+                    
+                    weight = (sigma_targets ** 2 + loss_fn.sigma_data ** 2) / (sigma_targets * loss_fn.sigma_data) ** 2
+                    loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2]) ** 2) + logvar
+
                 training_stats.report('Loss/loss', loss)
                 progress_bar.set_postfix(loss=loss.mean().item())
-                
-                loss.sum().mul(loss_scaling / batch_gpu_total).backward()
 
-        # Run optimizer and update weights.
+                loss.sum().mul(loss_scaling / batch_gpu_total).backward()
+        
+
         lr = dnnlib.util.call_func_by_name(cur_nimg=state.cur_nimg, batch_size=batch_size, **lr_kwargs)
         training_stats.report('Loss/learning_rate', lr)
         for g in optimizer.param_groups:
@@ -565,7 +522,6 @@ def training_loop(
                     torch.nan_to_num(param.grad, nan=0, posinf=0, neginf=0, out=param.grad)
         optimizer.step()
 
-        # Update EMA and training state.
         state.cur_nimg += batch_size
         if ema is not None:
             ema.update(cur_nimg=state.cur_nimg, batch_size=batch_size)

@@ -19,6 +19,7 @@ from torch_utils import misc
 from training.utils import get_epipolar_dist, get_warped_features
 from torch.utils.checkpoint import checkpoint
 import torch.nn.functional as F
+from .custom_litdata_loader import VANILLA_MODE
 
 def get_epipolar_attn(epipolar_corr, epipolar_mixing, patch_size=1):
     epipolar_corr = epipolar_corr.unsqueeze(1)
@@ -281,7 +282,8 @@ class XAttnBlock(torch.nn.Module):
 
 
             S_cross = features.shape[2] * features.shape[3]
-            kv_cross = self.x_attn_kv(features).view(B, self.num_heads, D_head, 2, S_cross)
+            kv_cross = self.x_attn_kv(features).view(B, -1, self.num_heads, D_head, 2, S_cross)
+            kv_cross = kv_cross.permute(0, 2, 3, 4, 1, 5).reshape(B, self.num_heads, D_head, 2, -1)
             kv_cross = normalize(kv_cross, dim=2)
             k_cross, v_cross = kv_cross.unbind(3) # k_cross, v_cross are each (B, H, D, S)
 
@@ -473,12 +475,11 @@ class XAttnUNet(torch.nn.Module):
 
         self.out_conv = MPConv(cout, 3, kernel=[3,3])
 
-    # In training/models.py, inside the XAttnUNet class
 
     def forward(self, x, features, noise_labels, geometry):
         # Embedding.
         emb = self.emb_noise(self.emb_fourier(noise_labels))
-        if self.emb_label is not None:
+        if self.emb_label is not None and geometry is not None: 
             emb = mp_sum(emb, self.emb_label(geometry), t=self.label_balance)
         emb = mp_silu(emb)
 
@@ -524,8 +525,6 @@ class UNetEncoder(UNet):
                 self.dec[name] = None
             else:
                 break
-
-    # In training/models.py, inside the UNetEncoder class
 
     def forward(self, x, noise_labels, geometry):
         # Embedding.
@@ -585,7 +584,8 @@ class NVPrecond(torch.nn.Module):
     def __init__(self,
         img_resolution,                 # Image resolution.
         img_channels,                   # Image channels.
-        label_dim,                      # Class label dimensionality. 0 = unconditional.
+        source_label_dim,
+        target_label_dim,# Class label dimensionality. 0 = unconditional.
         use_fp16            = True,     # Run the model at FP16 precision?
         sigma_data          = 0.5,      # Expected standard deviation of the training data.
         logvar_channels     = 128,      # Intermediate dimensionality for uncertainty estimation.
@@ -600,25 +600,96 @@ class NVPrecond(torch.nn.Module):
         super().__init__()
         self.img_resolution = img_resolution
         self.img_channels = img_channels
-        self.label_dim = label_dim
         self.use_fp16 = use_fp16
         self.sigma_data = sigma_data
         self.super_res = super_res
         self.no_time_enc = no_time_enc
         self.depth_input = depth_input
         self.warp_depth_coor = warp_depth_coor
+        source_label_dim = source_label_dim
+        target_label_dim = target_label_dim
         self.uncond = uncond
         self.noisy_sr = noisy_sr
-        self.encoder = UNetEncoder(img_resolution=img_resolution, img_channels=(img_channels + int(depth_input) + logvar_channels * int(warp_depth_coor)), label_dim=label_dim, **unet_kwargs) if not self.uncond else None
+        self.encoder = UNetEncoder(img_resolution=img_resolution, img_channels=(img_channels + int(depth_input) + logvar_channels * int(warp_depth_coor)), label_dim=source_label_dim, **unet_kwargs) if not self.uncond else None
         unet_class = SRXAttnUNet if super_res else XAttnUNet
-        self.unet = unet_class(img_resolution=img_resolution, img_channels=(img_channels + logvar_channels * int(warp_depth_coor)), label_dim=label_dim, **unet_kwargs)
+        self.unet = unet_class(img_resolution=img_resolution, img_channels=(img_channels + logvar_channels * int(warp_depth_coor)), label_dim=target_label_dim, **unet_kwargs)
         self.logvar_fourier = MPFourier(logvar_channels)
         self.logvar_linear = MPConv(logvar_channels, 1, kernel=[])
-        
-    def forward(self, src, dst, sigma, geometry=None, conditioning_image=None, force_fp32=False, return_logvar=False, return_features=False, inject_features=None, **unet_kwargs):
+
+    
+
+    def _forward_dualsource(self, src, dst, sigma, geometry, conditioning_image=None, force_fp32=False, return_logvar=False, return_features=False, inject_features=None, **unet_kwargs):
         x = dst.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
-        geometry = None if self.label_dim == 0 else torch.zeros([1, self.label_dim], device=x.device) if geometry is None else geometry.to(torch.float32).reshape(-1, self.label_dim)
+        geometry = geometry * int(not self.uncond)
+        dtype = torch.float16 if (self.use_fp16 and not force_fp32 and x.device.type == 'cuda') else torch.float32
+        print("geometry size:  "+ str(geometry.size()) )
+        # Preconditioning weights.
+        c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
+        c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2).sqrt()
+        c_in = 1 / (self.sigma_data ** 2 + sigma ** 2).sqrt()
+        c_noise = sigma.flatten().log() / 4
+
+        # Run the model.
+        x_in = (c_in * x).to(dtype)
+        # Add warped depth coordinates to network inputs
+        if self.warp_depth_coor:
+            assert src.shape[1] == 4
+            depth = src[:, 3:]
+            if torch.all(src[:, :3] == 0):
+                src_grid, dst_grid = [torch.zeros(src.shape[:1] + (128,) + src.shape[-2:], device=src.device, dtype=src.dtype)] * 2
+            else:
+                src_grid, dst_grid = get_warped_features(depth, geometry, self.logvar_fourier)
+            src = torch.cat([src[:, :3], src_grid], dim=1)
+            x_in = torch.cat([x_in, dst_grid], dim=1)
+
+        # Add a low-res conditioning images to an SR model
+        if self.super_res:
+            assert conditioning_image is not None
+            conditioning_image = conditioning_image + self.noisy_sr * torch.randn_like(conditioning_image)
+            x_in = torch.cat([x_in, conditioning_image], dim=1)
+        
+        # Features
+        if not self.training and inject_features is not None: # Use precomputed features
+            features = copy.deepcopy(inject_features)
+        elif self.encoder is None: # Insert zeros for an unconditional models
+            features = []
+            for name, block in self.unet.enc.items():
+                if isinstance(block, XAttnBlock):
+                    res = int(name.split("x")[0])
+                    features.append(torch.zeros((x_in.shape[0], block.out_channels, res, res), dtype=x_in.dtype, device=x_in.device))
+            for name, block in self.unet.dec.items():
+                if isinstance(block, XAttnBlock):
+                    res = int(name.split("x")[0])
+                    features.append(torch.zeros((x_in.shape[0], block.out_channels, res, res), dtype=x_in.dtype, device=x_in.device))
+        else: # Default encoder
+            features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+        if return_features:
+            return features
+
+        x_in = x_in[::2]
+        batch = x_in.shape[0]
+        geometry = geometry.view(batch, -1)
+        c_noise = c_noise[::2]
+        dst = dst[::2]
+        c_out = c_out[::2]
+
+        print("geometry size 2:  "+ str(geometry.size()) )
+        F_x = self.unet(x_in, features, c_noise, geometry, **unet_kwargs)
+        D_x = c_skip * dst + c_out * F_x.to(torch.float32)
+
+        # Estimate uncertainty if requested.
+        if return_logvar:
+            logvar = self.logvar_linear(self.logvar_fourier(c_noise)).reshape(-1, 1, 1, 1)
+            return D_x, logvar # u(sigma) in Equation 21
+        return D_x
+
+
+    def forward(self, src, dst, sigma, geometry=None, conditioning_image=None, force_fp32=False, return_logvar=False, return_features=False, inject_features=None, **unet_kwargs):
+        if not VANILLA_MODE:
+            return self._forward_dualsource(src, dst, sigma, geometry, conditioning_image, force_fp32, return_logvar, return_features, inject_features, **unet_kwargs)
+        x = dst.to(torch.float32)
+        sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
         geometry = geometry * int(not self.uncond)
         dtype = torch.float16 if (self.use_fp16 and not force_fp32 and x.device.type == 'cuda') else torch.float32
 

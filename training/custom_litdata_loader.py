@@ -1,18 +1,14 @@
-# In file: training/datautils/custom_litdata_loader.py
-
 import torch
 import litdata as ld
 import random
 from training.utils import compose_geometry
 import torchvision.transforms.functional as F
 
-VANILLA_MODE = True
+# --- GLOBAL TOGGLE ---
+VANILLA_MODE = False
 
-def process_scene_vanilla(scene: dict) -> dict | None:
-    """
-    This function handles all CPU-heavy processing for a SINGLE data sample.
-    It is called from __getitem__, which is executed in parallel by the DataLoader workers.
-    """
+
+def process_scene_vanilla(scene: dict):
     try: 
         if not scene or 'image' not in scene or scene['image'].shape[0] < 2:
             return None
@@ -26,7 +22,6 @@ def process_scene_vanilla(scene: dict) -> dict | None:
         src_c2w = torch.as_tensor(scene['c2w'][idx1], dtype=torch.float32)
         tgt_c2w = torch.as_tensor(scene['c2w'][idx2], dtype=torch.float32)
         
-        # This is the line that can fail
         tgt2src = torch.linalg.inv(tgt_c2w) @ src_c2w
         
         geo = compose_geometry(
@@ -48,62 +43,106 @@ def process_scene_vanilla(scene: dict) -> dict | None:
         return processed_item
 
     except torch.linalg.LinAlgError:
-        
         return None
     except Exception as e:
-      
-        return None 
+        return None
+
+
+
+def process_scene_interpolation_stacked(scene: dict, num_targets: int = 6):
+    
+    try:
+        if not scene or 'image' not in scene or scene['image'].shape[0] < (num_targets + 2):
+            return
+
+        num_available = scene['image'].shape[0]
+
+        min_frame_dist = 25
+        max_frame_dist = min(num_available - 1, 100)
+        if max_frame_dist <= min_frame_dist: return
+
+        frame_dist = random.randint(min_frame_dist, max_frame_dist)
+        src1_idx = random.randint(0, num_available - frame_dist - 1)
+        src2_idx = src1_idx + frame_dist
+        
+        num_intermediate_views = src2_idx - src1_idx - 1
+        if num_intermediate_views < num_targets: return
+        
+        target_indices = random.sample(range(src1_idx + 1, src2_idx), num_targets)
+
+        # Pre-process sources once per scene.
+        src1_img_resized = F.resize(scene['image'][src1_idx], [64, 64], antialias=True)
+        src2_img_resized = F.resize(scene['image'][src2_idx], [64, 64], antialias=True)
+        src1_c2w = torch.as_tensor(scene['c2w'][src1_idx], dtype=torch.float32)
+        src2_c2w = torch.as_tensor(scene['c2w'][src2_idx], dtype=torch.float32)
+        src1_K = scene['fxfycxcy'][src1_idx]
+        src2_K = scene['fxfycxcy'][src2_idx]
+        high_res_src1 = scene.get('sr_image', scene['image'])[src1_idx]
+        high_res_src2 = scene.get('sr_image', scene['image'])[src2_idx]
+        
+        for tgt_idx in target_indices:
+            tgt_img_resized = F.resize(scene['image'][tgt_idx], [64, 64], antialias=True)
+            tgt_c2w = torch.as_tensor(scene['c2w'][tgt_idx], dtype=torch.float32)
+            tgt_K = scene['fxfycxcy'][tgt_idx]
+
+            # Calculate two sets of relative geometries.
+            tgt2src1 = torch.linalg.inv(tgt_c2w) @ src1_c2w
+            tgt2src2 = torch.linalg.inv(tgt_c2w) @ src2_c2w
+            geo1 = compose_geometry(tgt2src=tgt2src1[:3, :], src_K=src1_K, tgt_K=tgt_K, imsize=64)
+            geo2 = compose_geometry(tgt2src=tgt2src2[:3, :], src_K=src2_K, tgt_K=tgt_K, imsize=64)
+
+            # Yield the first item for the pair (target + source 1)
+            yield {
+                'src_image': src1_img_resized,
+                'tgt_image': tgt_img_resized,
+                'geometry': geo1,
+                'high_res_src_image': high_res_src1,
+            }
+            # Yield the second item for the pair (target + source 2)
+            yield {
+                'src_image': src2_img_resized,
+                'tgt_image': tgt_img_resized,
+                'geometry': geo2,
+                'high_res_src_image': high_res_src2,
+            }
+
+    except Exception:
+        return
+
+
 
 
 class CustomLitDataset(torch.utils.data.IterableDataset):
-    """
-    An efficient IterableDataset for a single, large LitData chunk.
-    It relies on LitData's internal shuffling and parallel processing.
-    """
-    def __init__(self, path, cache_dir, max_cache_size="160GB", **kwargs):
+    def __init__(self, path, cache_dir, max_cache_size="160GB", mode='vanilla', **kwargs):
         super().__init__()
-        
-        # LitData's shuffle=True is designed to be efficient by shuffling a buffer of chunks internally.
-        # This is the correct way to handle a single, monolithic dataset chunk.
         self.streaming_dataset = ld.StreamingDataset(
-            input_dir=path,
-            cache_dir=cache_dir,
-            max_cache_size=max_cache_size,
-            shuffle=True, 
+            input_dir=path, cache_dir=cache_dir, max_cache_size=max_cache_size, shuffle=False
         )
-        print(f"LitData StreamingDataset initialized from a single chunk at {path}.")
-        print(f"Internal shuffling is enabled. Cache size is {max_cache_size}.")
+        self.mode = mode # <-- Store the mode passed during creation
+        print(f"LitData StreamingDataset initialized in {self.mode.upper()} MODE.")
 
     def __iter__(self):
-        """Yields fully processed items, ready for the collate function."""
-        for raw_item in self.streaming_dataset:
-            if VANILLA_MODE:
-                processed_item = process_scene_vanilla(raw_item)
-                if processed_item is not None:
-                    yield processed_item
-            else:
-                # TODO: Implement non-vanilla logic
-                pass
+        while True:
+            for raw_item in self.streaming_dataset:
+                if self.mode == 'vanilla':
+                    processed_item = process_scene_vanilla(raw_item)
+                    if processed_item is not None: yield processed_item
+                else:
+                    yield from process_scene_interpolation_stacked(raw_item, num_targets=6)
+
+
 
 
 class CustomLitCollate:
-    """A lean collate function that only stacks already-processed items."""
     def __call__(self, batch: list[dict]) -> dict | None:
-       
         batch = [item for item in batch if item is not None]
+        if not batch: return None
         
-        if not batch:
-            return None # Return None if the entire batch was filtered out
-    
-        
-        if VANILLA_MODE:
-            final_batch = {
-                'src_image': torch.stack([s['src_image'] for s in batch]),
-                'tgt_image': torch.stack([s['tgt_image'] for s in batch]),
-                'geometry': torch.stack([s['geometry'] for s in batch]),
-            }
-            if 'high_res_src_image' in batch[0]:
-                final_batch['high_res_src_image'] = torch.stack([s['high_res_src_image'] for s in batch])
-            return final_batch
-        else:
-            return None
+        final_batch = {
+            'src_image': torch.stack([s['src_image'] for s in batch]),
+            'tgt_image': torch.stack([s['tgt_image'] for s in batch]),
+            'geometry': torch.stack([s['geometry'] for s in batch]),
+        }
+        if 'high_res_src_image' in batch[0]:
+            final_batch['high_res_src_image'] = torch.stack([s['high_res_src_image'] for s in batch])
+        return final_batch

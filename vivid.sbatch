@@ -1,5 +1,5 @@
 #!/bin/bash
-#SBATCH --job-name="vanilla vivid H100 test"
+#SBATCH --job-name="nonvanilla vivid a40 test"
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=160G
 #SBATCH --mail-type=NONE
@@ -21,4 +21,4 @@ echo "SLURM JOB: Running on host $(hostname)"
 echo "SLURM JOB: Python path: $(which python)"
 echo "========================================="
 
-/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 256 --batch-gpu 256 --channels 64
+/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 64 --batch-gpu 64 --channels 64

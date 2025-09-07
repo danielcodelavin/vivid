@@ -25,6 +25,7 @@ import torchvision.transforms.functional
 import dnnlib
 from torch_utils import distributed as dist, misc
 from training.utils import add_depth, resolve_model, resolve_depth_model
+from training.custom_litdata_loader import VANILLA_MODE
 
 warnings.filterwarnings('ignore', '`resume_download` is deprecated')
 
