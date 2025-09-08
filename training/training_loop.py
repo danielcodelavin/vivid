@@ -34,7 +34,8 @@ from torch_utils import persistence
 from torch_utils import misc
 from training.utils import add_depth, compose_geometry, resolve_model, resolve_depth_model
 from calculate_metrics import get_metrics
-from .custom_litdata_loader import CustomLitCollate , CustomLitDataset, VANILLA_MODE
+# CHANGED: Import the new collate functions and simplified dataset
+from .custom_litdata_loader import CustomLitDataset, VanillaCollate, DualSourceCollate, VANILLA_MODE
 from tqdm import tqdm
 import torch.cuda
 import wandb
@@ -118,7 +119,9 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, source_
             dummy_sigma = torch.randn(dummy_bs, device=device)
             dummy_geometry = torch.randn(dummy_bs, source_label_dim, device=device)
         else: # Dual-source mode
-            dummy_bs = batch_size * 2
+            # The collate function produces a variable number of items, but we can simulate a typical case.
+            # A batch_size of scenes might produce batch_size * 6 * 2 items.
+            dummy_bs = batch_size * 12 
             dummy_src = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
             dummy_dst = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
             dummy_sigma = torch.randn(dummy_bs, device=device)
@@ -212,17 +215,9 @@ def training_loop(
     if dist.get_rank() == 0:
         os.makedirs(train_cache_dir, exist_ok=True)
         os.makedirs(test_cache_dir, exist_ok=True)
-    dist.barrier() 
+    dist.barrier()
+    dataset_obj = CustomLitDataset(path=dataset_kwargs['path'], cache_dir=train_cache_dir)
     
-    mode_str = 'vanilla' if VANILLA_MODE else 'dual_source'
-    
-    # Pass the explicit instruction when creating the dataset
-    dataset_obj = CustomLitDataset(
-        path=dataset_kwargs['path'],
-        cache_dir=train_cache_dir,
-        mode=mode_str
-    )
-
     if single_image_mix is not None and single_image_mix > 0:
         assert single_image_mix % batch_gpu > 0, "cant use less than 1 single image per GPU"
         from datautils.openimages import get_openimages_dataloader
@@ -266,14 +261,24 @@ def training_loop(
     dist.print0(f'Training from {state.cur_nimg // 1000} kimg to {stop_at_nimg // 1000} kimg ({(stop_at_nimg - state.cur_nimg) // batch_size} iters):')
     dist.print0()
 
-    collate_fn_instance = CustomLitCollate()
-    data_loader_kwargs['collate_fn'] = collate_fn_instance
+    # CHANGED: Select the collate function based on the mode
+    if VANILLA_MODE:
+        dist.print0("INFO: Using VanillaCollate for data processing.")
+        collate_fn_instance = VanillaCollate()
+    else:
+        dist.print0("INFO: Using DualSourceCollate for data processing.")
+        collate_fn_instance = DualSourceCollate()
+
+    # CHANGED: Remove old collate settings from kwargs
+    data_loader_kwargs.pop('collate_fn', None)
     data_loader_kwargs.pop('class_name', None)
     
+    # CHANGED: DataLoader now uses the selected collate function and batch_gpu refers to scenes
     dataloader = torch.utils.data.DataLoader(
-        dataset=dataset_obj, 
+        dataset=dataset_obj,
         sampler=None,
-        batch_size=batch_gpu if VANILLA_MODE else batch_gpu * 2,
+        batch_size=batch_gpu,
+        collate_fn=collate_fn_instance,
         **data_loader_kwargs
     )
     dataset_iterator = iter(dataloader)
@@ -284,11 +289,12 @@ def training_loop(
 
     if dist.get_rank() == 0 and eval_samples:
         dist.print0('Setting up test dataloader for sample generation...')
+        # CHANGED: test dataset now uses the same robust architecture
         test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=test_cache_dir)
         test_dataset_loader = torch.utils.data.DataLoader(
             test_dataset_obj,
-            batch_size=eval_samples if VANILLA_MODE else eval_samples * 2,
-            collate_fn=collate_fn_instance,
+            batch_size=eval_samples, # Now refers to number of scenes
+            collate_fn=collate_fn_instance, # Use the same collate function
             shuffle=False,
             num_workers=data_loader_kwargs['num_workers'],
             pin_memory=True
@@ -369,6 +375,7 @@ def training_loop(
                             test_dataset_iterator = iter(test_dataset_loader)
                             data = next(test_dataset_iterator)
                         
+                        if data is None: continue # Skip if batch is empty
                        
                         src_image, tgt_image, geometry = (data[("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
                         
@@ -384,8 +391,6 @@ def training_loop(
                         
                         src_for_depth = src_image if not sr_training else data["sr_src_image"]
                         src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
-                    # up until here target correctly the same
-                    #    src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
                         if net.super_res:
                             low_res = torchvision.transforms.functional.resize(
                                 torchvision.transforms.functional.resize(tgt, tgt.shape[-1] // 4),
@@ -484,9 +489,13 @@ def training_loop(
                 if VANILLA_MODE:
                     loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
                 else:
+                    # In dual-source mode, the batch is already correctly formed by the smart collate function.
+                    # The 'tgt_image' tensor is already paired. We just need to add paired noise.
+                    
                     # 1. Calculate the number of image pairs
                     num_pairs = tgt_image.shape[0] // 2
-                    
+                    if num_pairs == 0: continue # Skip if batch is malformed
+
                     # 2. Generate one sigma value for each pair
                     rnd_normal = torch.randn([num_pairs, 1, 1, 1], device=tgt_image.device)
                     sigma_targets = (rnd_normal * loss_fn.P_std + loss_fn.P_mean).exp()
@@ -500,7 +509,7 @@ def training_loop(
                     # Add the paired noise to the target images
                     noisy_targets_full = tgt_image + noise
 
-                    # The rest of the logic remains the same
+                    # Call the model with the full source/target tensors. The model will handle internal slicing.
                     denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_targets, geometry=geometry, return_logvar=True)
                     
                     weight = (sigma_targets ** 2 + loss_fn.sigma_data ** 2) / (sigma_targets * loss_fn.sigma_data) ** 2
@@ -522,7 +531,7 @@ def training_loop(
                     torch.nan_to_num(param.grad, nan=0, posinf=0, neginf=0, out=param.grad)
         optimizer.step()
 
-        state.cur_nimg += batch_size
+        state.cur_nimg += batch_size # Note: cur_nimg is an approximation based on scenes processed, not individual images
         if ema is not None:
             ema.update(cur_nimg=state.cur_nimg, batch_size=batch_size)
         cumulative_training_time += time.time() - batch_start_time

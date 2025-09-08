@@ -676,7 +676,7 @@ class NVPrecond(torch.nn.Module):
 
         print("geometry size 2:  "+ str(geometry.size()) )
         F_x = self.unet(x_in, features, c_noise, geometry, **unet_kwargs)
-        D_x = c_skip * dst + c_out * F_x.to(torch.float32)
+        D_x = c_skip[::2] * dst + c_out * F_x.to(torch.float32)
 
         # Estimate uncertainty if requested.
         if return_logvar:
