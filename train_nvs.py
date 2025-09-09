@@ -133,7 +133,7 @@ def launch_training(run_dir, c):
     wandb_config = {
         "project": "LVSM",
         "entity": "internetbootcamp",
-        "run_name": "vivid-vanilla_1",
+        "run_name": "vivid-dualsource-full-a40",
         "enabled": True
     }
     if dist.get_rank() == 0 and wandb_config["enabled"]:
@@ -203,15 +203,15 @@ def parse_nimg(s):
 @click.option('--test-data-path',   help='Path to the test dataset chunks', metavar='DIR', type=str, default='/storage/user/lavingal/re10k_test_chunks_all_views')
 
 # Performance-related options.
-@click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=2, show_default=True)
+@click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=64 , show_default=True)
 @click.option('--fp16',             help='Enable mixed-precision training', metavar='BOOL',     type=bool, default=True, show_default=True)
 @click.option('--ls',               help='Loss scaling', metavar='FLOAT',                       type=click.FloatRange(min=0, min_open=True), default=1, show_default=True)
 @click.option('--bench',            help='Enable cuDNN benchmarking', metavar='BOOL',           type=bool, default=True, show_default=True)
 
 # I/O-related options.
-@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='80', show_default=True)
-@click.option('--samples',          help='Interval of sample generation', metavar='NIMG',       type=parse_nimg, default='80', show_default=True)
-@click.option('--metrics',          help='Interval of metrics prints', metavar='NIMG',          type=parse_nimg, default='10000', show_default=True)
+@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='96', show_default=True)
+@click.option('--samples',          help='Interval of sample generation', metavar='NIMG',       type=parse_nimg, default='96', show_default=True)
+@click.option('--metrics',          help='Interval of metrics prints', metavar='NIMG',          type=parse_nimg, default='9600', show_default=True)
 @click.option('--snapshot',         help='Interval of network snapshots', metavar='NIMG',       type=parse_nimg, default='10000', show_default=True)
 @click.option('--checkpoint',       help='Interval of training checkpoints', metavar='NIMG',    type=parse_nimg, default='10000', show_default=True)
 @click.option('--seed',             help='Random seed', metavar='INT',                          type=int, default=0, show_default=True)

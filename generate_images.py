@@ -52,9 +52,11 @@ def edm_sampler(
             features = net(src, torch.zeros_like(src), torch.ones((src.shape[0]), dtype=dtype, device=noise.device), labels, conditioning_image, return_features=True)
 
         def denoise(x, t):
+            t = t.expand(x.shape[0])
             Dx = net(src, x, t, labels, conditioning_image, inject_features=features).to(dtype)
             if guidance == 1:
                 return Dx
+            # Note: Guidance with gnet might require similar handling if gnet is also dual-source
             ref_Dx = gnet(src, x, t).to(dtype)
             return ref_Dx.lerp(Dx, guidance)
         
@@ -81,19 +83,38 @@ def edm_sampler(
             x_hat = x_cur
 
         # Euler step.
-        d_cur = (x_hat - denoise(x_hat, t_hat)) / t_hat
-        x_next = x_hat + (t_next - t_hat) * d_cur
+        denoised_output = denoise(x_hat, t_hat)
+        
+        
+        is_dual_source = denoised_output.shape[0] != x_hat.shape[0]
+        if is_dual_source:
+           
+            d_cur = (x_hat[::2] - denoised_output) / t_hat
+            x_next_half = x_hat[::2] + (t_next - t_hat) * d_cur
+           
+            x_next = x_hat.clone()
+            x_next[::2] = x_next_half
+            x_next[1::2] = x_next_half
+        else: # Original vanilla logic
+            d_cur = (x_hat - denoised_output) / t_hat
+            x_next = x_hat + (t_next - t_hat) * d_cur
 
-        # Apply 2nd order correction.
+       
         if i < num_steps - 1:
-            d_prime = (x_next - denoise(x_next, t_next)) / t_next
-            x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+            denoised_prime = denoise(x_next, t_next)
+            if is_dual_source:
+                # Apply correction only to the first item of each pair
+                d_prime = (x_next[::2] - denoised_prime) / t_next
+                x_next_half = x_hat[::2] + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
+                x_next[::2] = x_next_half
+                x_next[1::2] = x_next_half
+            else: # Original vanilla logic
+                d_prime = (x_next - denoised_prime) / t_next
+                x_next = x_hat + (t_next - t_hat) * (0.5 * d_cur + 0.5 * d_prime)
 
+    if is_dual_source:
+        return x_next[::2]
     return x_next
-
-#----------------------------------------------------------------------------
-# Wrapper for torch.Generator that allows specifying a different random seed
-# for each sample in a minibatch.
 
 class StackedRandomGenerator:
     def __init__(self, device, seeds):
@@ -206,19 +227,38 @@ def generate_images_nvs(
                 r.seeds = [seeds[idx] for idx in indices]
                 if len(r.seeds) > 0:
                     data = {k: v[:len(r.seeds)] for k, v in next(dataset_iterator).items()}
-                    r.src, r.tgt, geometry = (data[("sr_" if super_res else "") + k] for k in ["src_image", "tgt_image", "geometry"])
-                    src = encoder.encode_latents(r.src.to(device))
                     
+                    # --- START OF PRECISE CHANGE ---
+                    # Prepare data differently for vanilla vs. dual-source generation
+                    if VANILLA_MODE:
+                        r.src, r.tgt, geometry = (data[k] for k in ["src_image", "tgt_image", "geometry"])
+                        src = encoder.encode_latents(r.src.to(device))
+                        r.labels = geometry.to(device)
+                    else: # Dual-source mode
+                        # Select one view per pair for generation
+                        r.src, r.tgt, geometry = (data[k][::2] for k in ["src_image", "tgt_image", "geometry"])
+                        # Duplicate the data to create the 2*B batch the model expects
+                        src_for_model = r.src.repeat_interleave(2, dim=0)
+                        labels_for_model = geometry.repeat_interleave(2, dim=0)
+                        src = encoder.encode_latents(src_for_model.to(device))
+                        r.labels = labels_for_model.to(device)
+                    # --- END OF PRECISE CHANGE ---
+
                     # Pick noise
                     rnd = StackedRandomGenerator(device, r.seeds)
-                    r.noise = rnd.randn([len(r.seeds), net.img_channels, net.img_resolution, net.img_resolution], device=device)
-                    r.labels = geometry.to(device)
-                    src = add_depth(depth_model, data["sr_src_image"].to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
+                    # The noise should match the shape of the *model's input*, which is `src`
+                    r.noise = rnd.randn(src.shape, device=device)
+
+                    # Add depth and handle SR conditioning image
+                    src_for_depth = r.src if not super_res else data["sr_src_image"]
+                    if not VANILLA_MODE: src_for_depth = src_for_depth.repeat_interleave(2, dim=0)
+                    src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
+                    
                     if super_res:
-                        tgt = encoder.encode_latents(r.tgt.to(device))
+                        tgt_for_sr = encoder.encode_latents(r.tgt.to(device))
                         low_res = torchvision.transforms.functional.resize(
-                            torchvision.transforms.functional.resize(tgt, tgt.shape[-1] // 4),
-                            tgt.shape[-1]
+                            torchvision.transforms.functional.resize(tgt_for_sr, tgt_for_sr.shape[-1] // 4),
+                            tgt_for_sr.shape[-1]
                         )
                         sampler_kwargs['conditioning_image'] = low_res
 
@@ -227,10 +267,10 @@ def generate_images_nvs(
                         latents = dnnlib.util.call_func_by_name(func_name=sampler_fn, net=net, src=src, noise=r.noise,
                             labels=r.labels, gnet=gnet, randn_like=rnd.randn_like, **sampler_kwargs)
                         r.images = encoder.decode(latents)
-
                     
                     # Up sample if SR model exists
                     if sr_model is not None:
+                        # (SR model logic would need similar dual-source handling if it's also a dual-source model)
                         r.src, r.tgt, sr_geometry = (data["sr_" + k] for k in ["src_image", "tgt_image", "geometry"])
                         sr_src = encoder.encode_latents(r.src.to(device))
                         rnd = StackedRandomGenerator(device, r.seeds)

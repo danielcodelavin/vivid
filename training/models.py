@@ -623,7 +623,7 @@ class NVPrecond(torch.nn.Module):
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
         geometry = geometry * int(not self.uncond)
         dtype = torch.float16 if (self.use_fp16 and not force_fp32 and x.device.type == 'cuda') else torch.float32
-        print("geometry size:  "+ str(geometry.size()) )
+       # print("geometry size:  "+ str(geometry.size()) )
         # Preconditioning weights.
         c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
         c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2).sqrt()
@@ -674,7 +674,7 @@ class NVPrecond(torch.nn.Module):
         dst = dst[::2]
         c_out = c_out[::2]
 
-        print("geometry size 2:  "+ str(geometry.size()) )
+    #    print("geometry size 2:  "+ str(geometry.size()) )
         F_x = self.unet(x_in, features, c_noise, geometry, **unet_kwargs)
         D_x = c_skip[::2] * dst + c_out * F_x.to(torch.float32)
 

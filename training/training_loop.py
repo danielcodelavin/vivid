@@ -127,6 +127,8 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, source_
             dummy_sigma = torch.randn(dummy_bs, device=device)
             dummy_geometry = torch.randn(dummy_bs, source_label_dim, device=device)
         
+        print("FLOP Target shape:", dummy_dst.shape)
+
         conditioning_image = None
         if sr_training:
             cond_bs = batch_size
@@ -169,11 +171,11 @@ def training_loop(
 
     run_dir             = '.',
     seed                = 0,
-    batch_size          = 512,
-    batch_gpu           = None,
+    batch_size          = 64,
+    batch_gpu           = 64,
     total_nimg          = 8<<30,
     slice_nimg          = None,
-    status_nimg         = 80,
+    status_nimg         = 96,
     samples_nimg        = 10000,
     metrics_nimg        = 10000,
     snapshot_nimg       = 10000,
@@ -306,7 +308,10 @@ def training_loop(
     start_nimg = state.cur_nimg
     stats_jsonl = None
     start_iter = state.cur_nimg // batch_size
-    total_iters = stop_at_nimg // batch_size
+    if not VANILLA_MODE:
+        total_iters = (stop_at_nimg // batch_size) // 6
+    else:
+        total_iters = stop_at_nimg // batch_size
     lr = 0.0
 
     if dist.get_rank() == 0:
@@ -375,36 +380,48 @@ def training_loop(
                             test_dataset_iterator = iter(test_dataset_loader)
                             data = next(test_dataset_iterator)
                         
-                        if data is None: continue # Skip if batch is empty
-                       
-                        src_image, tgt_image, geometry = (data[("sr_" if sr_training else "") + k] for k in ["src_image", "tgt_image", "geometry"])
-                        
+                        if data is None: continue
+
+                        src_image, tgt_image, geometry = (data.get(k) for k in [("sr_" if sr_training else "") + "src_image", ("sr_" if sr_training else "") + "tgt_image", ("sr_" if sr_training else "") + "geometry"])
+
                         if not VANILLA_MODE:
-                            # We only need one source and its geometry for sampling visualization.
+                         
                             src_image = src_image[::2]
                             tgt_image = tgt_image[::2]
                             geometry = geometry[::2]
-                        
+
+                    
+                        if not VANILLA_MODE:
+                            src_image = src_image.repeat_interleave(2, dim=0)
+                            geometry = geometry.repeat_interleave(2, dim=0)
+
                         src = encoder.encode_latents(src_image.to(device))
-                        tgt = encoder.encode_latents(tgt_image.to(device))
+                        # The ground truth `tgt` is only for visualization at the end, its shape doesn't need to be duplicated.
+                        tgt_for_vis = encoder.encode_latents(tgt_image.to(device))
                         sampler_kwargs = {}
-                        
+
+                        # The noise tensor must match the shape of the model's INPUT (`src`), not the ground truth target.
+                        noise_for_sampler = torch.randn_like(src)
+
                         src_for_depth = src_image if not sr_training else data["sr_src_image"]
                         src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
                         if net.super_res:
                             low_res = torchvision.transforms.functional.resize(
-                                torchvision.transforms.functional.resize(tgt, tgt.shape[-1] // 4),
-                                tgt.shape[-1]
+                                torchvision.transforms.functional.resize(tgt_for_vis, tgt_for_vis.shape[-1] // 4),
+                                tgt_for_vis.shape[-1]
                             )
                             sampler_kwargs['conditioning_image'] = low_res
-                        latents = edm_sampler(net=net, src=src, noise=torch.randn_like(tgt), labels=geometry.to(device), **sampler_kwargs)
+
+                        # Call the sampler with the correctly shaped tensors.
+                        latents = edm_sampler(net=net, src=src, noise=noise_for_sampler, labels=geometry.to(device), **sampler_kwargs)
                         net.train()
                         predicted_images = encoder.decode(latents).cpu()
+
                         if net.super_res:
                             lr_image = encoder.decode(low_res).cpu()
-                            samples_grid = torchvision.utils.make_grid(torch.cat([lr_image, src_image, predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
+                            samples_grid = torchvision.utils.make_grid(torch.cat([lr_image, src_image[::2], predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
                         else:
-                            samples_grid = torchvision.utils.make_grid(torch.cat([src_image, predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
+                            samples_grid = torchvision.utils.make_grid(torch.cat([src_image[::2], predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
 
                         PIL.Image.fromarray(
                             samples_grid.permute(1, 2, 0).numpy()
@@ -485,41 +502,33 @@ def training_loop(
                 if depth_model is not None:
                     src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input)
                 
-                
                 if VANILLA_MODE:
                     loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
                 else:
-                    # In dual-source mode, the batch is already correctly formed by the smart collate function.
-                    # The 'tgt_image' tensor is already paired. We just need to add paired noise.
-                    
-                    # 1. Calculate the number of image pairs
                     num_pairs = tgt_image.shape[0] // 2
-                    if num_pairs == 0: continue # Skip if batch is malformed
+                    
 
-                    # 2. Generate one sigma value for each pair
+                   
                     rnd_normal = torch.randn([num_pairs, 1, 1, 1], device=tgt_image.device)
-                    sigma_targets = (rnd_normal * loss_fn.P_std + loss_fn.P_mean).exp()
+                    sigma_per_pair = (rnd_normal * loss_fn.P_std + loss_fn.P_mean).exp()
+                    sigma_full = sigma_per_pair.repeat_interleave(2, dim=0)
                     
-                    # 3. Generate one unique noise tensor for each pair
-                    noise_pairs = torch.randn([num_pairs, *tgt_image.shape[1:]], device=tgt_image.device) * sigma_targets
-
-                    # 4. Duplicate the noise so that both images in a pair have the same noise
-                    noise = torch.repeat_interleave(noise_pairs, repeats=2, dim=0)
+                    noise_per_pair = torch.randn([num_pairs, *tgt_image.shape[1:]], device=tgt_image.device)
                     
-                    # Add the paired noise to the target images
-                    noisy_targets_full = tgt_image + noise
-
-                    # Call the model with the full source/target tensors. The model will handle internal slicing.
-                    denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_targets, geometry=geometry, return_logvar=True)
+                    noise_full = noise_per_pair.repeat_interleave(2, dim=0)
                     
-                    weight = (sigma_targets ** 2 + loss_fn.sigma_data ** 2) / (sigma_targets * loss_fn.sigma_data) ** 2
-                    loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2]) ** 2) + logvar
+                    noisy_targets_full = tgt_image + noise_full * sigma_full
+                    
+                    denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
 
+                    weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
+                    loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2])**2) + logvar
+
+                
                 training_stats.report('Loss/loss', loss)
                 progress_bar.set_postfix(loss=loss.mean().item())
 
                 loss.sum().mul(loss_scaling / batch_gpu_total).backward()
-        
 
         lr = dnnlib.util.call_func_by_name(cur_nimg=state.cur_nimg, batch_size=batch_size, **lr_kwargs)
         training_stats.report('Loss/learning_rate', lr)
@@ -531,7 +540,11 @@ def training_loop(
                     torch.nan_to_num(param.grad, nan=0, posinf=0, neginf=0, out=param.grad)
         optimizer.step()
 
-        state.cur_nimg += batch_size # Note: cur_nimg is an approximation based on scenes processed, not individual images
+        if VANILLA_MODE:
+            state.cur_nimg += batch_size # Note: cur_nimg is an approximation based on scenes processed, not individual images
+        else:
+            state.cur_nimg += batch_size * 6
+        
         if ema is not None:
             ema.update(cur_nimg=state.cur_nimg, batch_size=batch_size)
         cumulative_training_time += time.time() - batch_start_time
