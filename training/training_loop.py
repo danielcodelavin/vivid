@@ -453,7 +453,7 @@ def training_loop(
                 test_dataset_kwargs = dict(dataset_kwargs)
                 test_dataset_kwargs['path'] = test_dataset_path
             test_dataset_kwargs.pop('split', None)
-            metrics = get_metrics(net=net, encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=test_dataset_kwargs)
+            metrics = get_metrics(net=net,num_images= 100 , encoder=encoder, sr_model=sr_model, depth_model=depth_model, datakwargs=test_dataset_kwargs)
             net.train()
             if dist.get_rank() == 0 and wandb.run:
                 wandb_metrics = {f"Metrics/{key}": value for key, value in metrics.items()}

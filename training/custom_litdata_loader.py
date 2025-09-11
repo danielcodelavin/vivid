@@ -58,10 +58,8 @@ class VanillaCollate:
         return final_batch
 
 
-# =================================================================================
-# Collate Function for DUAL-SOURCE MODE
-# This is the robust batch-processing implementation.
-# =================================================================================
+
+
 class DualSourceCollate:
     def __call__(self, batch: list[dict]) -> dict | None:
         valid_scenes = [s for s in batch if s and 'image' in s and s['image'].shape[0] >= 8]
@@ -128,4 +126,5 @@ class CustomLitDataset(torch.utils.data.IterableDataset):
         )
 
     def __iter__(self):
-        yield from self.streaming_dataset
+        while True:
+            yield from self.streaming_dataset

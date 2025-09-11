@@ -13,6 +13,7 @@
 
 import os
 import re
+import time
 import warnings
 import click
 import tqdm
@@ -25,7 +26,7 @@ import torchvision.transforms.functional
 import dnnlib
 from torch_utils import distributed as dist, misc
 from training.utils import add_depth, resolve_model, resolve_depth_model
-from training.custom_litdata_loader import VANILLA_MODE
+from training.custom_litdata_loader import CustomLitDataset, VanillaCollate, DualSourceCollate, VANILLA_MODE
 
 warnings.filterwarnings('ignore', '`resume_download` is deprecated')
 
@@ -197,12 +198,33 @@ def generate_images_nvs(
     # Divide seeds into batches.
     num_batches = max((len(seeds) - 1) // (max_batch_size * dist.get_world_size()) + 1, 1) * dist.get_world_size()
     rank_batches = np.array_split(np.arange(len(seeds)), num_batches)[dist.get_rank() :: dist.get_world_size()]
-    if range_selection is not None:
-        datakwargs["range_selection"] = range_selection
-    dataset_obj = dnnlib.util.construct_class_by_name(**datakwargs, split="test")
-    dataset_sampler = misc.InfiniteSampler(dataset=dataset_obj, rank=dist.get_rank(), num_replicas=dist.get_world_size(), seed=seeds[0], start_idx=0)
-    dataset_iterator = iter(dnnlib.util.construct_class_by_name(dataset=dataset_obj, sampler=dataset_sampler, batch_size=max_batch_size, 
-                                                                class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=2, prefetch_factor=2))
+    
+    if dist.get_rank() == 0:
+        dist.print0('Setting up test dataloader for image generation...')
+
+    job_id = os.environ.get("SLURM_JOB_ID", f"generate_{int(time.time())}")
+    cache_dir = f"/dev/shm/litdata_cache_{job_id}_generate"
+    if dist.get_rank() == 0:
+        os.makedirs(cache_dir, exist_ok=True)
+    dist.barrier()
+    
+    dataset_obj = CustomLitDataset(path=datakwargs['path'], cache_dir=cache_dir)
+    
+    if VANILLA_MODE:
+        collate_fn = VanillaCollate()
+    else:
+        collate_fn = DualSourceCollate()
+    
+    dataloader = torch.utils.data.DataLoader(
+        dataset=dataset_obj,
+        batch_size=max_batch_size,
+        collate_fn=collate_fn,
+        num_workers=2,
+        pin_memory=True,
+        prefetch_factor=2
+    )
+    dataset_iterator = iter(dataloader)
+
     # Is current model an SR model?
     super_res = (net.img_resolution == 256)
     if sr_model is not None:
@@ -226,31 +248,49 @@ def generate_images_nvs(
                 r = dnnlib.EasyDict(images=None, src=None, tgt=None, labels=None, noise=None, batch_idx=batch_idx, num_batches=len(rank_batches), indices=indices)
                 r.seeds = [seeds[idx] for idx in indices]
                 if len(r.seeds) > 0:
-                    data = {k: v[:len(r.seeds)] for k, v in next(dataset_iterator).items()}
+                    try:
+                        data = next(dataset_iterator)
+                        if data is None: continue
+                    except StopIteration:
+                        continue
                     
-                    # --- START OF PRECISE CHANGE ---
-                    # Prepare data differently for vanilla vs. dual-source generation
                     if VANILLA_MODE:
                         r.src, r.tgt, geometry = (data[k] for k in ["src_image", "tgt_image", "geometry"])
+                        
+                        num_to_process = min(len(r.seeds), r.src.shape[0])
+                        if num_to_process == 0: continue
+                        r.seeds = r.seeds[:num_to_process]
+                        r.src = r.src[:num_to_process]
+                        r.tgt = r.tgt[:num_to_process]
+                        geometry = geometry[:num_to_process]
+                        
                         src = encoder.encode_latents(r.src.to(device))
                         r.labels = geometry.to(device)
                     else: # Dual-source mode
-                        # Select one view per pair for generation
-                        r.src, r.tgt, geometry = (data[k][::2] for k in ["src_image", "tgt_image", "geometry"])
-                        # Duplicate the data to create the 2*B batch the model expects
+                        base_src, r.tgt, geometry = (data[k][::2] for k in ["src_image", "tgt_image", "geometry"])
+                        
+                        num_to_process = min(len(r.seeds), base_src.shape[0])
+                        if num_to_process == 0: continue
+                        r.seeds = r.seeds[:num_to_process]
+                        r.src = base_src[:num_to_process]
+                        r.tgt = r.tgt[:num_to_process]
+                        geometry = geometry[:num_to_process]
+
                         src_for_model = r.src.repeat_interleave(2, dim=0)
                         labels_for_model = geometry.repeat_interleave(2, dim=0)
                         src = encoder.encode_latents(src_for_model.to(device))
                         r.labels = labels_for_model.to(device)
-                    # --- END OF PRECISE CHANGE ---
 
-                    # Pick noise
                     rnd = StackedRandomGenerator(device, r.seeds)
-                    # The noise should match the shape of the *model's input*, which is `src`
-                    r.noise = rnd.randn(src.shape, device=device)
+                    if not VANILLA_MODE:
+                        num_seeds = len(r.seeds)
+                        noise_shape_per_seed = list(src.shape[1:])
+                        noise_for_pairs = rnd.randn([num_seeds] + noise_shape_per_seed, device=device)
+                        r.noise = noise_for_pairs.repeat_interleave(2, dim=0)
+                    else:
+                        r.noise = rnd.randn(src.shape, device=device)
 
-                    # Add depth and handle SR conditioning image
-                    src_for_depth = r.src if not super_res else data["sr_src_image"]
+                    src_for_depth = r.src if not super_res else data["sr_src_image"][:num_to_process]
                     if not VANILLA_MODE: src_for_depth = src_for_depth.repeat_interleave(2, dim=0)
                     src = add_depth(depth_model, src_for_depth.to(device), src, inv_norm=net.depth_input) if depth_model is not None else src
                     
@@ -262,16 +302,19 @@ def generate_images_nvs(
                         )
                         sampler_kwargs['conditioning_image'] = low_res
 
-                    # Generate images.
                     with torch.no_grad():
                         latents = dnnlib.util.call_func_by_name(func_name=sampler_fn, net=net, src=src, noise=r.noise,
                             labels=r.labels, gnet=gnet, randn_like=rnd.randn_like, **sampler_kwargs)
                         r.images = encoder.decode(latents)
                     
-                    # Up sample if SR model exists
                     if sr_model is not None:
-                        # (SR model logic would need similar dual-source handling if it's also a dual-source model)
                         r.src, r.tgt, sr_geometry = (data["sr_" + k] for k in ["src_image", "tgt_image", "geometry"])
+                        
+                        # Synchronize SR data with the number of processed seeds
+                        r.src = r.src[:num_to_process]
+                        r.tgt = r.tgt[:num_to_process]
+                        sr_geometry = sr_geometry[:num_to_process]
+
                         sr_src = encoder.encode_latents(r.src.to(device))
                         rnd = StackedRandomGenerator(device, r.seeds)
                         r.noise = rnd.randn([len(r.seeds), sr_model.img_channels, sr_model.img_resolution, sr_model.img_resolution], device=device)
@@ -294,8 +337,7 @@ def generate_images_nvs(
                             PIL.Image.fromarray(_tgt, 'RGB').save(os.path.join(image_dir, f'tgt_{seed:06d}.png'))
                             PIL.Image.fromarray(image, 'RGB').save(os.path.join(image_dir, f'sample_{seed:06d}.png'))
 
-                # Yield results.
-                torch.distributed.barrier() # keep the ranks in sync
+                torch.distributed.barrier()
                 yield r
 
     return ImageIterable()

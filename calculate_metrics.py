@@ -328,12 +328,12 @@ def get_metrics(net, encoder, num_images=10_000, sr_model=None, depth_model=None
     """
     metrics = ['fid', 'fd_dinov2', 'joint_fid', 'joint_fd_dinov2', "psnr"]
     image_iter = generate_images.generate_images_nvs(net=net, encoder=encoder, seeds=range(seed, seed + num_images), max_batch_size=25, sr_model=sr_model, depth_model=depth_model, datakwargs=datakwargs, verbose=verbose)
-    stats_iter = calculate_stats_for_iterable_nvs(image_iter, metrics=metrics, verbose=verbose, sr=(sr_model is not None))
+    stats_iter = calculate_stats_for_iterable_nvs(image_iter, metrics=metrics, verbose=verbose)
     for r, ref in tqdm.tqdm(stats_iter, unit='batch', disable=(dist.get_rank() != 0), leave=False):
         pass
     results = None
     if dist.get_rank() == 0:
-        results = calculate_metrics_from_stats_nvs(stats=r.stats, ref=ref.stats, metrics=metrics, verbose=verbose, sr=(sr_model is not None))
+        results = calculate_metrics_from_stats_nvs(stats=r.stats, ref=ref.stats, metrics=metrics, verbose=verbose)
     torch.distributed.barrier()
     return results 
 

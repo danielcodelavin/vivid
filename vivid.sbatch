@@ -1,10 +1,10 @@
 #!/bin/bash
-#SBATCH --job-name="nonvanilla vivid a40 full dual source"
+#SBATCH --job-name="test nonvanilla vivid a40 full dual source"
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=160G
 #SBATCH --mail-type=NONE
-#SBATCH --gres=gpu:rtx_a6000:1
-#SBATCH --time=12-00:00:00
+#SBATCH --gres=gpu:titan:1
+#SBATCH --time=2-00:00:00
 #SBATCH --output=/home/stud/lavingal/storage/slurm/lavingal/run_reports/slurm-%j.out
 #SBATCH --error=/home/stud/lavingal/storage/slurm/lavingal/run_reports/slurm-%j.out
 eval "$(conda shell.bash hook)"
@@ -21,4 +21,4 @@ echo "SLURM JOB: Running on host $(hostname)"
 echo "SLURM JOB: Python path: $(which python)"
 echo "========================================="
 
-/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 8 --batch-gpu 8 --channels 64
+/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 4 --batch-gpu 4 --channels 64

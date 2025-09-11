@@ -209,7 +209,7 @@ def parse_nimg(s):
 @click.option('--bench',            help='Enable cuDNN benchmarking', metavar='BOOL',           type=bool, default=True, show_default=True)
 
 # I/O-related options.
-@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='96', show_default=True)
+@click.option('--status',           help='Interval of status prints', metavar='NIMG',           type=parse_nimg, default='960', show_default=True)
 @click.option('--samples',          help='Interval of sample generation', metavar='NIMG',       type=parse_nimg, default='96', show_default=True)
 @click.option('--metrics',          help='Interval of metrics prints', metavar='NIMG',          type=parse_nimg, default='9600', show_default=True)
 @click.option('--snapshot',         help='Interval of network snapshots', metavar='NIMG',       type=parse_nimg, default='10000', show_default=True)
