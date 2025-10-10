@@ -159,8 +159,8 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, source_
         print("--- GFLOPs Analysis Complete ---")
 
 def training_loop(
-    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/re10k_train_chunks_all_views'),
-    test_dataset_path   = '/storage/user/lavingal/re10k_test_chunks_all_views', 
+    dataset_kwargs      = dict(class_name='training.datautils.custom_litdata_loader.CustomLitDataset', path='/storage/user/lavingal/objaverseplus_chunked'),
+    test_dataset_path   = '/storage/slurm/lavingal/lavingal/LVSM/datasets/gso_chunked', 
     encoder_kwargs      = dict(class_name='training.encoders.StandardRGBEncoder'),
     data_loader_kwargs  = dict(class_name='torch.utils.data.DataLoader', pin_memory=True, num_workers=8, prefetch_factor=2),
     network_kwargs      = dict(class_name='training.networks_edm2.Precond'),
@@ -173,7 +173,7 @@ def training_loop(
     seed                = 0,
     batch_size          = 64,
     batch_gpu           = 64,
-    total_nimg          = 8<<30,
+    total_nimg          = 192000000,
     slice_nimg          = None,
     status_nimg         = 96,
     samples_nimg        = 10000,
@@ -309,7 +309,7 @@ def training_loop(
     stats_jsonl = None
     start_iter = state.cur_nimg // batch_size
     if not VANILLA_MODE:
-        total_iters = (stop_at_nimg // batch_size) // 6
+        total_iters = (stop_at_nimg // batch_size)
     else:
         total_iters = stop_at_nimg // batch_size
     lr = 0.0
@@ -415,13 +415,29 @@ def training_loop(
                         # Call the sampler with the correctly shaped tensors.
                         latents = edm_sampler(net=net, src=src, noise=noise_for_sampler, labels=geometry.to(device), **sampler_kwargs)
                         net.train()
-                        predicted_images = encoder.decode(latents).cpu()
+                        predicted_images_uint8 = encoder.decode(latents).cpu()
+                        # This line is still good for the debug print
+                        predicted_images_for_debug = predicted_images_uint8.to(torch.float32) / 255.0
+    
+    
+                        print("\n--- Tensor Debug Info ---")
+                        print(f"SRC Image (Input):   dtype={src_image.dtype}, min={src_image.min():.2f}, max={src_image.max():.2f}")
+                        print(f"PREDICTED (Noise):   dtype={predicted_images_for_debug.dtype}, min={predicted_images_for_debug.min():.2f}, max={predicted_images_for_debug.max():.2f}")
+                        print(f"TGT Image (Ground Truth): dtype={tgt_image.dtype}, min={tgt_image.min():.2f}, max={tgt_image.max():.2f}")
+                        print("-------------------------\n")
 
+
+                        src_for_grid = src_image[::2].clip(0, 255).to(torch.uint8)
+                        tgt_for_grid = tgt_image.clip(0, 255).to(torch.uint8)
+
+                        # 2. Concatenate the correctly formatted uint8 tensors
+                        grid_tensors = torch.cat([src_for_grid, predicted_images_uint8, tgt_for_grid], dim=0)
                         if net.super_res:
                             lr_image = encoder.decode(low_res).cpu()
-                            samples_grid = torchvision.utils.make_grid(torch.cat([lr_image, src_image[::2], predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
+                            samples_grid = torchvision.utils.make_grid(grid_tensors, eval_samples).cpu()
+
                         else:
-                            samples_grid = torchvision.utils.make_grid(torch.cat([src_image[::2], predicted_images, tgt_image], dim=0), eval_samples).to(torch.uint8).cpu()
+                            samples_grid = torchvision.utils.make_grid(grid_tensors, eval_samples).cpu()
 
                         PIL.Image.fromarray(
                             samples_grid.permute(1, 2, 0).numpy()
@@ -498,6 +514,12 @@ def training_loop(
                 src_image = encoder.encode_latents(src_image.to(device))
                 tgt_image = encoder.encode_latents(tgt_image.to(device))
                 geometry = geometry.to(device)
+
+                if dist.get_rank() == 0 and progress_bar.n % 10 == 0:
+                    print(f"\n--- [Step {progress_bar.n}] Post-Encoding Data Verification ---")
+                    print(f"Source Tensor (to Model): dtype={src_image.dtype}, min={src_image.min():.2f}, max={src_image.max():.2f}")
+                    print(f"Target Tensor (to Model): dtype={tgt_image.dtype}, min={tgt_image.min():.2f}, max={tgt_image.max():.2f}")
+                    print("--------------------------------------------------")
                 
                 if depth_model is not None:
                     src_image = add_depth(depth_model, high_res.to(device), src_image, inv_norm=net.depth_input)
@@ -520,6 +542,17 @@ def training_loop(
                     noisy_targets_full = tgt_image + noise_full * sigma_full
                     
                     denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
+
+                
+                    if dist.get_rank() == 0 and progress_bar.n % 10 == 0:
+                        print(f"\n--- [Step {progress_bar.n}] Loss Calculation Verification ---")
+                        target_for_loss = tgt_image[::2]
+                        print(f"Source for Model: dtype={src_image.dtype}, min={src_image.min():.2f}, max={src_image.max():.2f}")
+                        print(f"Denoised (Output):dtype={denoised.dtype}, min={denoised.min():.2f}, max={denoised.max():.2f}")
+                        print(f"Target for Loss:  dtype={target_for_loss.dtype}, min={target_for_loss.min():.2f}, max={target_for_loss.max():.2f}")
+                        print("--------------------------------------------------\n")
+                    
+
 
                     weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
                     loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2])**2) + logvar

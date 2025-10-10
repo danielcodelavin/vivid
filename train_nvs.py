@@ -25,7 +25,7 @@ import training.training_loop
 # Configuration presets.
 
 config_presets = {
-    'vivid-base':    dnnlib.EasyDict(duration=1024<<20, batch=1024,  channels=128, lr=0.0120, decay=35000, dropout=0.00, P_mean=-0.8, P_std=1.6, extra_attn=1),
+    'vivid-base':    dnnlib.EasyDict(duration=500000, batch=1024,  channels=128, lr=0.0120, decay=35000, dropout=0.00, P_mean=-0.8, P_std=1.6, extra_attn=1),
     'vivid-uncond':    dnnlib.EasyDict(duration=1024<<19, batch=1024,  channels=128, lr=0.0120, decay=35000, dropout=0.00, P_mean=-0.8, P_std=1.6, extra_attn=1, uncond=True),
     'vivid-sr':   dnnlib.EasyDict(duration=256<<20,  batch=128,  channels=64,  lr=0.0200, decay=35000, dropout=0.00, P_mean=-0.8, P_std=1.6, noisy_sr=0.25),
 }
@@ -48,7 +48,7 @@ def setup_training_config(preset='vivid-base', **opts):
 
 
     # Dataset.
-    path_to_dataset = '/storage/user/lavingal/re10k_train_chunks_all_views'
+    path_to_dataset = '/storage/user/lavingal/objaverseplus_chunked'
     c.dataset_kwargs = dnnlib.EasyDict(class_name='datautils.RealEstate10K', path=path_to_dataset, split="train", imsize=64)
 
     
@@ -133,7 +133,7 @@ def launch_training(run_dir, c):
     wandb_config = {
         "project": "LVSM",
         "entity": "internetbootcamp",
-        "run_name": "vivid-dualsource-full-a40",
+        "run_name": "plain vanilla vivid low LR test correct normalization",
         "enabled": True
     }
     if dist.get_rank() == 0 and wandb_config["enabled"]:
@@ -181,8 +181,8 @@ def parse_nimg(s):
 @click.option('--sr-training',      help='Toggles training of SR model',                        is_flag=False)
 
 # Hyperparameters.
-@click.option('--duration',         help='Training duration', metavar='NIMG',                   type=parse_nimg, default=None)
-@click.option('--batch',            help='Total batch size', metavar='NIMG',                    type=parse_nimg, default=None)
+@click.option('--duration',         help='Training duration', metavar='NIMG',                   type=parse_nimg, default=500000)
+@click.option('--batch',            help='Total batch size', metavar='NIMG',                    type=parse_nimg, default=64)
 @click.option('--channels',         help='Channel multiplier', metavar='INT',                   type=click.IntRange(min=64), default=None)
 @click.option('--dropout',          help='Dropout probability', metavar='FLOAT',                type=click.FloatRange(min=0, max=1), default=None)
 @click.option('--P_mean', 'P_mean', help='Noise level mean', metavar='FLOAT',                   type=float, default=None)
@@ -200,7 +200,7 @@ def parse_nimg(s):
 @click.option('--uncond',           help='Regular diffusion',                                   is_flag=True)
 @click.option('--noisy-sr',         help='Adds noise to low-res image',                         type=float, default=None, show_default=True)
 @click.option('--sr-model',         help='Path to SR model to use for evaluation',metavar='STR',type=str, required=False)
-@click.option('--test-data-path',   help='Path to the test dataset chunks', metavar='DIR', type=str, default='/storage/user/lavingal/re10k_test_chunks_all_views')
+@click.option('--test-data-path',   help='Path to the test dataset chunks', metavar='DIR', type=str, default='/storage/slurm/lavingal/lavingal/LVSM/datasets/gso_chunked')
 
 # Performance-related options.
 @click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=64 , show_default=True)

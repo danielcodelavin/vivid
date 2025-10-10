@@ -1,0 +1,553 @@
+NVPrecond(
+  62.67 M = 100% Params, 733.53 GMACs = 100% MACs, 863.91 ms = 100% latency, 1.7 TFLOPS
+  (encoder): UNetEncoder(
+    29.85 M = 47.63% Params, 397.43 GMACs = 54.18% MACs, 457.72 ms = 52.98% latency, 1.74 TFLOPS
+    (emb_fourier): MPFourier(0 = 0% Params, 0 MACs = 0% MACs, 1.34 ms = 0.15% latency, 0 FLOPS)
+    (emb_noise): MPConv(16.38 K = 0.03% Params, 786.43 KMACs = 0% MACs, 44.86 ms = 5.19% latency, 35.07 MFLOPS)
+    (emb_label): MPConv(5.12 K = 0.01% Params, 245.76 KMACs = 0% MACs, 482.08 us = 0.06% latency, 1.02 GFLOPS)
+    (enc): ModuleDict(
+      9.64 M = 15.37% Params, 160.83 GMACs = 21.93% MACs, 258.51 ms = 29.92% latency, 1.24 TFLOPS
+      (64x64_conv): MPConv(2.3 K = 0% Params, 452.98 MMACs = 0.06% MACs, 92.89 ms = 10.75% latency, 9.75 GFLOPS)
+      (64x64_block0): Block(
+        90.11 K = 0.14% Params, 14.5 GMACs = 1.98% MACs, 21.55 ms = 2.5% latency, 1.35 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 4.08 ms = 0.47% latency, 3.56 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 786.43 KMACs = 0% MACs, 297.78 us = 0.03% latency, 5.28 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 1.91 ms = 0.22% latency, 7.61 TFLOPS)
+      )
+      (64x64_block1): Block(
+        90.11 K = 0.14% Params, 14.5 GMACs = 1.98% MACs, 7.73 ms = 0.89% latency, 3.75 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 1.65 ms = 0.19% latency, 8.8 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 786.43 KMACs = 0% MACs, 285.39 us = 0.03% latency, 5.51 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 1.58 ms = 0.18% latency, 9.2 TFLOPS)
+      )
+      (64x64_block2): Block(
+        90.11 K = 0.14% Params, 14.5 GMACs = 1.98% MACs, 7.64 ms = 0.88% latency, 3.8 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 1.57 ms = 0.18% latency, 9.23 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 786.43 KMACs = 0% MACs, 248.91 us = 0.03% latency, 6.32 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 7.25 GMACs = 0.99% MACs, 1.62 ms = 0.19% latency, 8.94 TFLOPS)
+      )
+      (32x32_down): Block(
+        90.11 K = 0.14% Params, 3.64 GMACs = 0.5% MACs, 7.8 ms = 0.9% latency, 933.89 GFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 1.81 GMACs = 0.25% MACs, 2.8 ms = 0.32% latency, 1.3 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 786.43 KMACs = 0% MACs, 263.69 us = 0.03% latency, 5.97 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 1.81 GMACs = 0.25% MACs, 626.09 us = 0.07% latency, 5.79 TFLOPS)
+      )
+      (32x32_block0): Block(
+        335.87 K = 0.54% Params, 14.9 GMACs = 2.03% MACs, 9.76 ms = 1.13% latency, 3.05 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 2.93 ms = 0.34% latency, 4.94 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 265.12 us = 0.03% latency, 11.87 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.2 ms = 0.14% latency, 12.05 TFLOPS)
+        (conv_skip): MPConv(8.19 K = 0.01% Params, 402.65 MMACs = 0.05% MACs, 3.09 ms = 0.36% latency, 260.5 GFLOPS)
+      )
+      (32x32_block1): Block(
+        393.22 K = 0.63% Params, 30.6 GMACs = 4.17% MACs, 54.3 ms = 6.29% latency, 1.13 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.18 ms = 0.14% latency, 12.26 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 252.25 us = 0.03% latency, 12.47 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.18 ms = 0.14% latency, 12.27 TFLOPS)
+        (attn_qkv): MPConv(49.15 K = 0.08% Params, 2.42 GMACs = 0.33% MACs, 15.24 ms = 1.76% latency, 316.98 GFLOPS)
+        (attn_proj): MPConv(16.38 K = 0.03% Params, 805.31 MMACs = 0.11% MACs, 2.35 ms = 0.27% latency, 684.78 GFLOPS)
+      )
+      (32x32_block2): Block(
+        327.68 K = 0.52% Params, 14.5 GMACs = 1.98% MACs, 5.1 ms = 0.59% latency, 5.68 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.34 ms = 0.16% latency, 10.82 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 308.99 us = 0.04% latency, 10.18 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.21 ms = 0.14% latency, 11.97 TFLOPS)
+      )
+      (16x16_down): Block(
+        327.68 K = 0.52% Params, 3.63 GMACs = 0.5% MACs, 4.99 ms = 0.58% latency, 1.45 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 1.81 GMACs = 0.25% MACs, 2.76 ms = 0.32% latency, 1.32 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 383.14 us = 0.04% latency, 8.21 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 1.81 GMACs = 0.25% MACs, 527.14 us = 0.06% latency, 6.87 TFLOPS)
+      )
+      (16x16_block0): Block(
+        884.74 K = 1.41% Params, 11.48 GMACs = 1.56% MACs, 12.8 ms = 1.48% latency, 1.79 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 2.77 ms = 0.32% latency, 2.94 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 331.4 us = 0.04% latency, 14.24 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 692.61 us = 0.08% latency, 11.77 TFLOPS)
+        (conv_skip): MPConv(24.58 K = 0.04% Params, 301.99 MMACs = 0.04% MACs, 1.7 ms = 0.2% latency, 355.65 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 1.95 ms = 0.23% latency, 1.4 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 1.72 ms = 0.2% latency, 526.16 GFLOPS)
+      )
+      (16x16_block1): Block(
+        860.16 K = 1.37% Params, 11.18 GMACs = 1.52% MACs, 6.43 ms = 0.74% latency, 3.48 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 705.72 us = 0.08% latency, 11.55 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 288.72 us = 0.03% latency, 16.34 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 702.14 us = 0.08% latency, 11.61 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 694.75 us = 0.08% latency, 3.91 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 465.39 us = 0.05% latency, 1.95 TFLOPS)
+      )
+      (16x16_block2): Block(
+        860.16 K = 1.37% Params, 11.18 GMACs = 1.52% MACs, 6.45 ms = 0.75% latency, 3.47 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 694.75 us = 0.08% latency, 11.74 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 278.47 us = 0.03% latency, 16.95 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 683.78 us = 0.08% latency, 11.92 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 685.69 us = 0.08% latency, 3.96 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 453.23 us = 0.05% latency, 2 TFLOPS)
+      )
+      (8x8_down): Block(
+        712.71 K = 1.14% Params, 2.04 GMACs = 0.28% MACs, 4.24 ms = 0.49% latency, 963.53 GFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 1.02 GMACs = 0.14% MACs, 2.56 ms = 0.3% latency, 795.77 GFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 331.64 us = 0.04% latency, 14.23 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 1.02 GMACs = 0.14% MACs, 438.93 us = 0.05% latency, 4.64 TFLOPS)
+      )
+      (8x8_block0): Block(
+        1.56 M = 2.48% Params, 4.68 GMACs = 0.64% MACs, 9.64 ms = 1.12% latency, 972.31 GFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 2.42 ms = 0.28% latency, 1.5 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 327.35 us = 0.04% latency, 19.22 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 510.93 us = 0.06% latency, 7.09 TFLOPS)
+        (conv_skip): MPConv(49.15 K = 0.08% Params, 150.99 MMACs = 0.02% MACs, 1.57 ms = 0.18% latency, 192.53 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 1.63 ms = 0.19% latency, 741.81 GFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 1.59 ms = 0.18% latency, 253.54 GFLOPS)
+      )
+      (8x8_block1): Block(
+        1.51 M = 2.41% Params, 4.53 GMACs = 0.62% MACs, 3.53 ms = 0.41% latency, 2.57 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 514.75 us = 0.06% latency, 7.04 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 304.46 us = 0.04% latency, 20.67 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 494.24 us = 0.06% latency, 7.33 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 447.27 us = 0.05% latency, 2.7 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 394.82 us = 0.05% latency, 1.02 TFLOPS)
+      )
+      (8x8_block2): Block(
+        1.51 M = 2.41% Params, 4.53 GMACs = 0.62% MACs, 3.66 ms = 0.42% latency, 2.47 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 502.82 us = 0.06% latency, 7.21 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 297.07 us = 0.03% latency, 21.18 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 505.69 us = 0.06% latency, 7.17 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 486.61 us = 0.06% latency, 2.48 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 378.13 us = 0.04% latency, 1.06 TFLOPS)
+      )
+    )
+    (dec): ModuleDict(
+      20.19 M = 32.22% Params, 236.6 GMACs = 32.25% MACs, 131.03 ms = 15.17% latency, 3.61 TFLOPS
+      (8x8_in0): Block(
+        1.51 M = 2.41% Params, 4.53 GMACs = 0.62% MACs, 3.48 ms = 0.4% latency, 2.61 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 533.82 us = 0.06% latency, 6.79 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 319.24 us = 0.04% latency, 19.71 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 520.47 us = 0.06% latency, 6.96 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 507.59 us = 0.06% latency, 2.38 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 370.03 us = 0.04% latency, 1.09 TFLOPS)
+      )
+      (8x8_in1): Block(
+        1.25 M = 1.99% Params, 3.63 GMACs = 0.49% MACs, 1.76 ms = 0.2% latency, 4.12 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 530.72 us = 0.06% latency, 6.83 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 260.35 us = 0.03% latency, 24.17 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 510.22 us = 0.06% latency, 7.1 TFLOPS)
+      )
+      (8x8_block0): Block(
+        2.23 M = 3.56% Params, 6.75 GMACs = 0.92% MACs, 7.45 ms = 0.86% latency, 1.81 TFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 3.62 GMACs = 0.49% MACs, 2.84 ms = 0.33% latency, 2.55 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 299.45 us = 0.03% latency, 21.01 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 495.43 us = 0.06% latency, 7.31 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 1.69 ms = 0.2% latency, 475.6 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 472.31 us = 0.05% latency, 2.56 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 355.48 us = 0.04% latency, 1.13 TFLOPS)
+      )
+      (8x8_block1): Block(
+        2.23 M = 3.56% Params, 6.75 GMACs = 0.92% MACs, 3.97 ms = 0.46% latency, 3.4 TFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 3.62 GMACs = 0.49% MACs, 643.97 us = 0.07% latency, 11.25 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 318.05 us = 0.04% latency, 19.78 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 515.22 us = 0.06% latency, 7.03 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 422.24 us = 0.05% latency, 1.91 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 440.12 us = 0.05% latency, 2.74 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 364.54 us = 0.04% latency, 1.1 TFLOPS)
+      )
+      (8x8_block2): Block(
+        2.23 M = 3.56% Params, 6.75 GMACs = 0.92% MACs, 3.84 ms = 0.44% latency, 3.52 TFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 3.62 GMACs = 0.49% MACs, 651.12 us = 0.08% latency, 11.13 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 288.25 us = 0.03% latency, 21.83 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 481.61 us = 0.06% latency, 7.52 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 391.96 us = 0.05% latency, 2.05 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 435.83 us = 0.05% latency, 2.77 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 356.67 us = 0.04% latency, 1.13 TFLOPS)
+      )
+      (8x8_block3): Block(
+        2.06 M = 3.29% Params, 6.24 GMACs = 0.85% MACs, 7.26 ms = 0.84% latency, 1.72 TFLOPS
+        (conv_res0): MPConv(1.03 M = 1.65% Params, 3.17 GMACs = 0.43% MACs, 2.69 ms = 0.31% latency, 2.35 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 300.41 us = 0.03% latency, 20.94 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 1.81 GMACs = 0.25% MACs, 494.48 us = 0.06% latency, 7.33 TFLOPS)
+        (conv_skip): MPConv(114.69 K = 0.18% Params, 352.32 MMACs = 0.05% MACs, 1.66 ms = 0.19% latency, 425.62 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 603.98 MMACs = 0.08% MACs, 507.59 us = 0.06% latency, 2.38 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 201.33 MMACs = 0.03% MACs, 339.03 us = 0.04% latency, 1.19 TFLOPS)
+      )
+      (16x16_up): Block(
+        1.25 M = 1.99% Params, 14.5 GMACs = 1.98% MACs, 11.15 ms = 1.29% latency, 2.6 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 7.25 GMACs = 0.99% MACs, 3.14 ms = 0.36% latency, 4.62 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 3.15 MMACs = 0% MACs, 306.37 us = 0.04% latency, 20.54 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 7.25 GMACs = 0.99% MACs, 978.95 us = 0.11% latency, 14.81 TFLOPS)
+      )
+      (16x16_block0): Block(
+        1.39 M = 2.22% Params, 17.67 GMACs = 2.41% MACs, 10.66 ms = 1.23% latency, 3.31 TFLOPS
+        (conv_res0): MPConv(774.14 K = 1.24% Params, 9.51 GMACs = 1.3% MACs, 3.02 ms = 0.35% latency, 6.29 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 353.34 us = 0.04% latency, 13.35 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 724.08 us = 0.08% latency, 11.26 TFLOPS)
+        (conv_skip): MPConv(86.02 K = 0.14% Params, 1.06 GMACs = 0.14% MACs, 2 ms = 0.23% latency, 1.06 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 660.18 us = 0.08% latency, 4.12 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 456.81 us = 0.05% latency, 1.98 TFLOPS)
+      )
+      (16x16_block1): Block(
+        1.27 M = 2.02% Params, 16.16 GMACs = 2.2% MACs, 10.22 ms = 1.18% latency, 3.16 TFLOPS
+        (conv_res0): MPConv(663.55 K = 1.06% Params, 8.15 GMACs = 1.11% MACs, 2.91 ms = 0.34% latency, 5.6 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 303.51 us = 0.04% latency, 15.55 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 680.69 us = 0.08% latency, 11.98 TFLOPS)
+        (conv_skip): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 1.76 ms = 0.2% latency, 1.03 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 647.54 us = 0.07% latency, 4.2 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 487.09 us = 0.06% latency, 1.86 TFLOPS)
+      )
+      (16x16_block2): Block(
+        1.27 M = 2.02% Params, 16.16 GMACs = 2.2% MACs, 6.99 ms = 0.81% latency, 4.62 TFLOPS
+        (conv_res0): MPConv(663.55 K = 1.06% Params, 8.15 GMACs = 1.11% MACs, 980.62 us = 0.11% latency, 16.63 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 289.68 us = 0.03% latency, 16.29 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 683.07 us = 0.08% latency, 11.94 TFLOPS)
+        (conv_skip): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 569.58 us = 0.07% latency, 3.18 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 639.2 us = 0.07% latency, 4.25 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 459.43 us = 0.05% latency, 1.97 TFLOPS)
+      )
+      (16x16_block3): Block(
+        1.14 M = 1.82% Params, 14.65 GMACs = 2% MACs, 10.46 ms = 1.21% latency, 2.8 TFLOPS
+        (conv_res0): MPConv(552.96 K = 0.88% Params, 6.79 GMACs = 0.93% MACs, 3.1 ms = 0.36% latency, 4.39 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 350.24 us = 0.04% latency, 13.47 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 4.08 GMACs = 0.56% MACs, 691.18 us = 0.08% latency, 11.8 TFLOPS)
+        (conv_skip): MPConv(61.44 K = 0.1% Params, 754.97 MMACs = 0.1% MACs, 1.8 ms = 0.21% latency, 837.39 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 1.36 GMACs = 0.19% MACs, 683.31 us = 0.08% latency, 3.98 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 452.98 MMACs = 0.06% MACs, 468.73 us = 0.05% latency, 1.93 TFLOPS)
+      )
+      (32x32_up): Block(
+        712.71 K = 1.14% Params, 32.62 GMACs = 4.45% MACs, 11.13 ms = 1.29% latency, 5.86 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 16.31 GMACs = 2.22% MACs, 3.81 ms = 0.44% latency, 8.57 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 2.36 MMACs = 0% MACs, 336.17 us = 0.04% latency, 14.04 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 16.31 GMACs = 2.22% MACs, 1.74 ms = 0.2% latency, 18.75 TFLOPS)
+      )
+      (32x32_block0): Block(
+        589.83 K = 0.94% Params, 27.38 GMACs = 3.73% MACs, 10.3 ms = 1.19% latency, 5.32 TFLOPS
+        (conv_res0): MPConv(368.64 K = 0.59% Params, 18.12 GMACs = 2.47% MACs, 4.24 ms = 0.49% latency, 8.56 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 392.2 us = 0.05% latency, 8.02 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.21 ms = 0.14% latency, 12.01 TFLOPS)
+        (conv_skip): MPConv(40.96 K = 0.07% Params, 2.01 GMACs = 0.27% MACs, 2.28 ms = 0.26% latency, 1.77 TFLOPS)
+      )
+      (32x32_block1): Block(
+        507.9 K = 0.81% Params, 23.36 GMACs = 3.18% MACs, 9.75 ms = 1.13% latency, 4.79 TFLOPS
+        (conv_res0): MPConv(294.91 K = 0.47% Params, 14.5 GMACs = 1.98% MACs, 4.22 ms = 0.49% latency, 6.87 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 362.63 us = 0.04% latency, 8.68 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.21 ms = 0.14% latency, 11.98 TFLOPS)
+        (conv_skip): MPConv(32.77 K = 0.05% Params, 1.61 GMACs = 0.22% MACs, 1.93 ms = 0.22% latency, 1.67 TFLOPS)
+      )
+      (32x32_block2): Block(
+        573.44 K = 0.91% Params, 39.46 GMACs = 5.38% MACs, 22.61 ms = 2.62% latency, 3.49 TFLOPS
+        (conv_res0): MPConv(294.91 K = 0.47% Params, 14.5 GMACs = 1.98% MACs, 1.8 ms = 0.21% latency, 16.12 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 1.57 MMACs = 0% MACs, 325.92 us = 0.04% latency, 9.65 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 7.25 GMACs = 0.99% MACs, 1.18 ms = 0.14% latency, 12.23 TFLOPS)
+        (conv_skip): MPConv(32.77 K = 0.05% Params, 1.61 GMACs = 0.22% MACs, 656.6 us = 0.08% latency, 4.91 TFLOPS)
+        (attn_qkv): MPConv(49.15 K = 0.08% Params, 2.42 GMACs = 0.33% MACs, 920.06 us = 0.11% latency, 5.25 TFLOPS)
+        (attn_proj): MPConv(16.38 K = 0.03% Params, 805.31 MMACs = 0.11% MACs, 726.22 us = 0.08% latency, 2.22 TFLOPS)
+      )
+      (32x32_block3): None
+      (64x64_up): None
+      (64x64_block0): None
+      (64x64_block1): None
+      (64x64_block2): None
+      (64x64_block3): None
+    )
+    (out_conv): None
+  )
+  (unet): XAttnUNet(
+    32.82 M = 52.37% Params, 336.09 GMACs = 45.82% MACs, 335.41 ms = 38.83% latency, 2 TFLOPS
+    (emb_fourier): MPFourier(0 = 0% Params, 0 MACs = 0% MACs, 229.36 us = 0.03% latency, 0 FLOPS)
+    (emb_noise): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 348.33 us = 0.04% latency, 2.26 GFLOPS)
+    (emb_label): MPConv(10.24 K = 0.02% Params, 245.76 KMACs = 0% MACs, 313.28 us = 0.04% latency, 1.57 GFLOPS)
+    (enc): ModuleDict(
+      10.28 M = 16.41% Params, 102.76 GMACs = 14.01% MACs, 130.43 ms = 15.1% latency, 1.58 TFLOPS
+      (64x64_conv): MPConv(2.3 K = 0% Params, 226.49 MMACs = 0.03% MACs, 3.22 ms = 0.37% latency, 140.76 GFLOPS)
+      (64x64_block0): Block(
+        90.11 K = 0.14% Params, 7.25 GMACs = 0.99% MACs, 6.92 ms = 0.8% latency, 2.1 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 3.27 ms = 0.38% latency, 2.22 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 335.69 us = 0.04% latency, 2.34 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.21 ms = 0.14% latency, 5.98 TFLOPS)
+      )
+      (64x64_block1): Block(
+        90.11 K = 0.14% Params, 7.25 GMACs = 0.99% MACs, 4.62 ms = 0.53% latency, 3.14 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.13 ms = 0.13% latency, 6.43 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 308.51 us = 0.04% latency, 2.55 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.09 ms = 0.13% latency, 6.67 TFLOPS)
+      )
+      (64x64_block2): Block(
+        90.11 K = 0.14% Params, 7.25 GMACs = 0.99% MACs, 4.67 ms = 0.54% latency, 3.11 TFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.13 ms = 0.13% latency, 6.44 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 278.23 us = 0.03% latency, 2.83 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.16 ms = 0.13% latency, 6.27 TFLOPS)
+      )
+      (32x32_down): Block(
+        90.11 K = 0.14% Params, 1.82 GMACs = 0.25% MACs, 4.98 ms = 0.58% latency, 731.45 GFLOPS
+        (conv_res0): MPConv(36.86 K = 0.06% Params, 905.97 MMACs = 0.12% MACs, 2.87 ms = 0.33% latency, 632.21 GFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 319 us = 0.04% latency, 2.47 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 905.97 MMACs = 0.12% MACs, 502.35 us = 0.06% latency, 3.61 TFLOPS)
+      )
+      (32x32_block0): Block(
+        335.87 K = 0.54% Params, 7.45 GMACs = 1.02% MACs, 6.97 ms = 0.81% latency, 2.14 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 2.9 ms = 0.34% latency, 2.5 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 327.11 us = 0.04% latency, 4.81 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 911.71 us = 0.11% latency, 7.95 TFLOPS)
+        (conv_skip): MPConv(8.19 K = 0.01% Params, 201.33 MMACs = 0.03% MACs, 1.59 ms = 0.18% latency, 252.94 GFLOPS)
+      )
+      (32x32_block1): XAttnBlock(
+        425.99 K = 0.68% Params, 29.8 GMACs = 4.06% MACs, 35.48 ms = 4.11% latency, 1.68 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 789.64 us = 0.09% latency, 9.18 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 327.35 us = 0.04% latency, 4.81 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 799.42 us = 0.09% latency, 9.07 TFLOPS)
+        (attn_qkv): MPConv(49.15 K = 0.08% Params, 1.21 GMACs = 0.16% MACs, 1.95 ms = 0.23% latency, 1.24 TFLOPS)
+        (x_attn_kv): MPConv(32.77 K = 0.05% Params, 1.61 GMACs = 0.22% MACs, 1.97 ms = 0.23% latency, 1.63 TFLOPS)
+        (attn_proj): MPConv(16.38 K = 0.03% Params, 402.65 MMACs = 0.05% MACs, 2.23 ms = 0.26% latency, 360.63 GFLOPS)
+      )
+      (32x32_block2): Block(
+        327.68 K = 0.52% Params, 7.25 GMACs = 0.99% MACs, 3.34 ms = 0.39% latency, 4.34 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 815.39 us = 0.09% latency, 8.89 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 391.96 us = 0.05% latency, 4.01 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 927.69 us = 0.11% latency, 7.81 TFLOPS)
+      )
+      (16x16_down): Block(
+        327.68 K = 0.52% Params, 1.82 GMACs = 0.25% MACs, 4.15 ms = 0.48% latency, 875.47 GFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 905.97 MMACs = 0.12% MACs, 2.52 ms = 0.29% latency, 717.91 GFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 296.59 us = 0.03% latency, 5.3 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 905.97 MMACs = 0.12% MACs, 482.56 us = 0.06% latency, 3.75 TFLOPS)
+      )
+      (16x16_block0): XAttnBlock(
+        958.47 K = 1.53% Params, 7.85 GMACs = 1.07% MACs, 15.07 ms = 1.74% latency, 1.04 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 2.73 ms = 0.32% latency, 1.49 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 305.41 us = 0.04% latency, 7.73 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 567.44 us = 0.07% latency, 7.18 TFLOPS)
+        (conv_skip): MPConv(24.58 K = 0.04% Params, 150.99 MMACs = 0.02% MACs, 1.92 ms = 0.22% latency, 157.05 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 1.62 ms = 0.19% latency, 837.72 GFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 1.69 ms = 0.2% latency, 1.07 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 1.69 ms = 0.2% latency, 268.32 GFLOPS)
+      )
+      (16x16_block1): XAttnBlock(
+        933.89 K = 1.49% Params, 7.7 GMACs = 1.05% MACs, 7.38 ms = 0.85% latency, 2.09 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 585.08 us = 0.07% latency, 6.97 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 347.38 us = 0.04% latency, 6.79 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 567.2 us = 0.07% latency, 7.19 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 412.46 us = 0.05% latency, 3.29 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 548.36 us = 0.06% latency, 3.3 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 384.57 us = 0.04% latency, 1.18 TFLOPS)
+      )
+      (16x16_block2): XAttnBlock(
+        933.89 K = 1.49% Params, 7.7 GMACs = 1.05% MACs, 7.28 ms = 0.84% latency, 2.11 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 590.32 us = 0.07% latency, 6.91 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 281.57 us = 0.03% latency, 8.38 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 620.13 us = 0.07% latency, 6.57 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 475.65 us = 0.06% latency, 2.86 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 480.41 us = 0.06% latency, 3.77 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 384.09 us = 0.04% latency, 1.18 TFLOPS)
+      )
+      (8x8_down): Block(
+        712.71 K = 1.14% Params, 1.02 GMACs = 0.14% MACs, 4.41 ms = 0.51% latency, 463.03 GFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 509.61 MMACs = 0.07% MACs, 2.49 ms = 0.29% latency, 409.91 GFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 303.27 us = 0.04% latency, 7.78 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 509.61 MMACs = 0.07% MACs, 400.78 us = 0.05% latency, 2.54 TFLOPS)
+      )
+      (8x8_block0): XAttnBlock(
+        1.69 M = 2.69% Params, 2.85 GMACs = 0.39% MACs, 13.12 ms = 1.52% latency, 433.87 GFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 2.44 ms = 0.28% latency, 742.61 GFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 369.31 us = 0.04% latency, 8.52 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 478.03 us = 0.06% latency, 3.79 TFLOPS)
+        (conv_skip): MPConv(49.15 K = 0.08% Params, 75.5 MMACs = 0.01% MACs, 2.56 ms = 0.3% latency, 59 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 1.74 ms = 0.2% latency, 348.03 GFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 1.64 ms = 0.19% latency, 489.59 GFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 1.55 ms = 0.18% latency, 129.67 GFLOPS)
+      )
+      (8x8_block1): XAttnBlock(
+        1.64 M = 2.61% Params, 2.77 GMACs = 0.38% MACs, 4.18 ms = 0.48% latency, 1.33 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 455.14 us = 0.05% latency, 3.98 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 303.75 us = 0.04% latency, 10.36 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 484.23 us = 0.06% latency, 3.74 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 448.47 us = 0.05% latency, 1.35 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 390.77 us = 0.05% latency, 2.06 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 353.1 us = 0.04% latency, 570.17 GFLOPS)
+      )
+      (8x8_block2): XAttnBlock(
+        1.64 M = 2.61% Params, 2.77 GMACs = 0.38% MACs, 4.63 ms = 0.54% latency, 1.2 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 459.43 us = 0.05% latency, 3.94 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 320.43 us = 0.04% latency, 9.82 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 478.51 us = 0.06% latency, 3.79 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 404.36 us = 0.05% latency, 1.49 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 414.85 us = 0.05% latency, 1.94 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 346.9 us = 0.04% latency, 580.36 GFLOPS)
+      )
+    )
+    (dec): ModuleDict(
+      22.51 M = 35.92% Params, 233.16 GMACs = 31.79% MACs, 185.75 ms = 21.5% latency, 2.51 TFLOPS
+      (8x8_in0): XAttnBlock(
+        1.64 M = 2.61% Params, 2.77 GMACs = 0.38% MACs, 4.18 ms = 0.48% latency, 1.32 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 507.12 us = 0.06% latency, 3.57 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 285.15 us = 0.03% latency, 11.03 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 537.4 us = 0.06% latency, 3.37 TFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 481.61 us = 0.06% latency, 1.25 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 364.54 us = 0.04% latency, 2.21 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 403.4 us = 0.05% latency, 499.07 GFLOPS)
+      )
+      (8x8_in1): Block(
+        1.25 M = 1.99% Params, 1.81 GMACs = 0.25% MACs, 1.88 ms = 0.22% latency, 1.93 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 529.77 us = 0.06% latency, 3.42 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 326.87 us = 0.04% latency, 9.62 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 492.33 us = 0.06% latency, 3.68 TFLOPS)
+      )
+      (8x8_block0): XAttnBlock(
+        2.36 M = 3.76% Params, 3.88 GMACs = 0.53% MACs, 8.48 ms = 0.98% latency, 914.73 GFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 1.81 GMACs = 0.25% MACs, 2.99 ms = 0.35% latency, 1.21 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 355.01 us = 0.04% latency, 8.86 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 447.75 us = 0.05% latency, 4.05 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 201.33 MMACs = 0.03% MACs, 1.84 ms = 0.21% latency, 218.99 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 442.74 us = 0.05% latency, 1.36 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 369.55 us = 0.04% latency, 2.18 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 375.03 us = 0.04% latency, 536.83 GFLOPS)
+      )
+      (8x8_block1): XAttnBlock(
+        2.36 M = 3.76% Params, 3.88 GMACs = 0.53% MACs, 5.15 ms = 0.6% latency, 1.51 TFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 1.81 GMACs = 0.25% MACs, 601.53 us = 0.07% latency, 6.02 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 340.22 us = 0.04% latency, 9.25 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 451.33 us = 0.05% latency, 4.01 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 201.33 MMACs = 0.03% MACs, 484.23 us = 0.06% latency, 831.54 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 432.97 us = 0.05% latency, 1.39 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 404.6 us = 0.05% latency, 1.99 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 564.1 us = 0.07% latency, 356.9 GFLOPS)
+      )
+      (8x8_block2): XAttnBlock(
+        2.36 M = 3.76% Params, 3.88 GMACs = 0.53% MACs, 5.56 ms = 0.64% latency, 1.39 TFLOPS
+        (conv_res0): MPConv(1.18 M = 1.88% Params, 1.81 GMACs = 0.25% MACs, 730.28 us = 0.08% latency, 4.96 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 351.43 us = 0.04% latency, 8.95 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 576.26 us = 0.07% latency, 3.14 TFLOPS)
+        (conv_skip): MPConv(131.07 K = 0.21% Params, 201.33 MMACs = 0.03% MACs, 493.76 us = 0.06% latency, 815.48 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 483.51 us = 0.06% latency, 1.25 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 444.65 us = 0.05% latency, 1.81 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 489.95 us = 0.06% latency, 410.91 GFLOPS)
+      )
+      (8x8_block3): XAttnBlock(
+        2.2 M = 3.5% Params, 3.63 GMACs = 0.49% MACs, 8.18 ms = 0.95% latency, 886.1 GFLOPS
+        (conv_res0): MPConv(1.03 M = 1.65% Params, 1.59 GMACs = 0.22% MACs, 3.04 ms = 0.35% latency, 1.04 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 395.3 us = 0.05% latency, 7.96 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 905.97 MMACs = 0.12% MACs, 455.38 us = 0.05% latency, 3.98 TFLOPS)
+        (conv_skip): MPConv(114.69 K = 0.18% Params, 176.16 MMACs = 0.02% MACs, 1.54 ms = 0.18% latency, 228.82 GFLOPS)
+        (attn_qkv): MPConv(196.61 K = 0.31% Params, 301.99 MMACs = 0.04% MACs, 432.73 us = 0.05% latency, 1.4 TFLOPS)
+        (x_attn_kv): MPConv(131.07 K = 0.21% Params, 402.65 MMACs = 0.05% MACs, 337.36 us = 0.04% latency, 2.39 TFLOPS)
+        (attn_proj): MPConv(65.54 K = 0.1% Params, 100.66 MMACs = 0.01% MACs, 330.21 us = 0.04% latency, 609.69 GFLOPS)
+      )
+      (16x16_up): Block(
+        1.25 M = 1.99% Params, 7.25 GMACs = 0.99% MACs, 7.07 ms = 0.82% latency, 2.05 TFLOPS
+        (conv_res0): MPConv(589.82 K = 0.94% Params, 3.62 GMACs = 0.49% MACs, 3.1 ms = 0.36% latency, 2.33 TFLOPS)
+        (emb_linear): MPConv(65.54 K = 0.1% Params, 1.57 MMACs = 0% MACs, 394.11 us = 0.05% latency, 7.98 GFLOPS)
+        (conv_res1): MPConv(589.82 K = 0.94% Params, 3.62 GMACs = 0.49% MACs, 698.57 us = 0.08% latency, 10.38 TFLOPS)
+      )
+      (16x16_block0): XAttnBlock(
+        1.46 M = 2.33% Params, 10.95 GMACs = 1.49% MACs, 11.99 ms = 1.39% latency, 1.83 TFLOPS
+        (conv_res0): MPConv(774.14 K = 1.24% Params, 4.76 GMACs = 0.65% MACs, 3.41 ms = 0.39% latency, 2.79 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 352.38 us = 0.04% latency, 6.7 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 553.85 us = 0.06% latency, 7.36 TFLOPS)
+        (conv_skip): MPConv(86.02 K = 0.14% Params, 528.48 MMACs = 0.07% MACs, 1.93 ms = 0.22% latency, 546.84 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 500.92 us = 0.06% latency, 2.71 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 491.86 us = 0.06% latency, 3.68 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 375.03 us = 0.04% latency, 1.21 TFLOPS)
+      )
+      (16x16_block1): XAttnBlock(
+        1.34 M = 2.14% Params, 10.19 GMACs = 1.39% MACs, 11.22 ms = 1.3% latency, 1.82 TFLOPS
+        (conv_res0): MPConv(663.55 K = 1.06% Params, 4.08 GMACs = 0.56% MACs, 3.02 ms = 0.35% latency, 2.7 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 325.68 us = 0.04% latency, 7.24 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 546.93 us = 0.06% latency, 7.45 TFLOPS)
+        (conv_skip): MPConv(73.73 K = 0.12% Params, 452.98 MMACs = 0.06% MACs, 1.66 ms = 0.19% latency, 544.17 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 475.17 us = 0.06% latency, 2.86 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 502.82 us = 0.06% latency, 3.6 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 396.73 us = 0.05% latency, 1.14 TFLOPS)
+      )
+      (16x16_block2): XAttnBlock(
+        1.34 M = 2.14% Params, 10.19 GMACs = 1.39% MACs, 7.82 ms = 0.91% latency, 2.61 TFLOPS
+        (conv_res0): MPConv(663.55 K = 1.06% Params, 4.08 GMACs = 0.56% MACs, 768.18 us = 0.09% latency, 10.61 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 311.14 us = 0.04% latency, 7.58 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 548.12 us = 0.06% latency, 7.44 TFLOPS)
+        (conv_skip): MPConv(73.73 K = 0.12% Params, 452.98 MMACs = 0.06% MACs, 420.09 us = 0.05% latency, 2.16 TFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 486.61 us = 0.06% latency, 2.79 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 480.65 us = 0.06% latency, 3.77 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 416.04 us = 0.05% latency, 1.09 TFLOPS)
+      )
+      (16x16_block3): XAttnBlock(
+        1.22 M = 1.94% Params, 9.44 GMACs = 1.29% MACs, 11.55 ms = 1.34% latency, 1.64 TFLOPS
+        (conv_res0): MPConv(552.96 K = 0.88% Params, 3.4 GMACs = 0.46% MACs, 3.02 ms = 0.35% latency, 2.25 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 365.02 us = 0.04% latency, 6.46 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 2.04 GMACs = 0.28% MACs, 564.34 us = 0.07% latency, 7.22 TFLOPS)
+        (conv_skip): MPConv(61.44 K = 0.1% Params, 377.49 MMACs = 0.05% MACs, 1.82 ms = 0.21% latency, 415.84 GFLOPS)
+        (attn_qkv): MPConv(110.59 K = 0.18% Params, 679.48 MMACs = 0.09% MACs, 522.14 us = 0.06% latency, 2.6 TFLOPS)
+        (x_attn_kv): MPConv(73.73 K = 0.12% Params, 905.97 MMACs = 0.12% MACs, 505.92 us = 0.06% latency, 3.58 TFLOPS)
+        (attn_proj): MPConv(36.86 K = 0.06% Params, 226.49 MMACs = 0.03% MACs, 403.17 us = 0.05% latency, 1.12 TFLOPS)
+      )
+      (32x32_up): Block(
+        712.71 K = 1.14% Params, 16.31 GMACs = 2.22% MACs, 8.22 ms = 0.95% latency, 3.97 TFLOPS
+        (conv_res0): MPConv(331.78 K = 0.53% Params, 8.15 GMACs = 1.11% MACs, 3.39 ms = 0.39% latency, 4.81 TFLOPS)
+        (emb_linear): MPConv(49.15 K = 0.08% Params, 1.18 MMACs = 0% MACs, 369.55 us = 0.04% latency, 6.38 GFLOPS)
+        (conv_res1): MPConv(331.78 K = 0.53% Params, 8.15 GMACs = 1.11% MACs, 1.14 ms = 0.13% latency, 14.37 TFLOPS)
+      )
+      (32x32_block0): Block(
+        589.83 K = 0.94% Params, 13.69 GMACs = 1.87% MACs, 9.57 ms = 1.11% latency, 2.86 TFLOPS
+        (conv_res0): MPConv(368.64 K = 0.59% Params, 9.06 GMACs = 1.24% MACs, 4.41 ms = 0.51% latency, 4.11 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 465.39 us = 0.05% latency, 3.38 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 903.61 us = 0.1% latency, 8.02 TFLOPS)
+        (conv_skip): MPConv(40.96 K = 0.07% Params, 1.01 GMACs = 0.14% MACs, 2.59 ms = 0.3% latency, 777.34 GFLOPS)
+      )
+      (32x32_block1): Block(
+        507.9 K = 0.81% Params, 11.68 GMACs = 1.59% MACs, 7.49 ms = 0.87% latency, 3.12 TFLOPS
+        (conv_res0): MPConv(294.91 K = 0.47% Params, 7.25 GMACs = 0.99% MACs, 3.11 ms = 0.36% latency, 4.66 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 313.04 us = 0.04% latency, 5.02 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 929.12 us = 0.11% latency, 7.8 TFLOPS)
+        (conv_skip): MPConv(32.77 K = 0.05% Params, 805.31 MMACs = 0.11% MACs, 2.1 ms = 0.24% latency, 767.22 GFLOPS)
+      )
+      (32x32_block2): XAttnBlock(
+        606.21 K = 0.97% Params, 34.23 GMACs = 4.67% MACs, 30.55 ms = 3.54% latency, 2.24 TFLOPS
+        (conv_res0): MPConv(294.91 K = 0.47% Params, 7.25 GMACs = 0.99% MACs, 1.04 ms = 0.12% latency, 13.9 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 277.76 us = 0.03% latency, 5.66 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 753.64 us = 0.09% latency, 9.62 TFLOPS)
+        (conv_skip): MPConv(32.77 K = 0.05% Params, 805.31 MMACs = 0.11% MACs, 455.14 us = 0.05% latency, 3.54 TFLOPS)
+        (attn_qkv): MPConv(49.15 K = 0.08% Params, 1.21 GMACs = 0.16% MACs, 603.68 us = 0.07% latency, 4 TFLOPS)
+        (x_attn_kv): MPConv(32.77 K = 0.05% Params, 1.61 GMACs = 0.22% MACs, 665.43 us = 0.08% latency, 4.84 TFLOPS)
+        (attn_proj): MPConv(16.38 K = 0.03% Params, 402.65 MMACs = 0.05% MACs, 516.89 us = 0.06% latency, 1.56 TFLOPS)
+      )
+      (32x32_block3): Block(
+        425.99 K = 0.68% Params, 9.66 GMACs = 1.32% MACs, 6.89 ms = 0.8% latency, 2.81 TFLOPS
+        (conv_res0): MPConv(221.18 K = 0.35% Params, 5.44 GMACs = 0.74% MACs, 3.07 ms = 0.36% latency, 3.54 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 299.93 us = 0.03% latency, 5.24 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 3.62 GMACs = 0.49% MACs, 851.15 us = 0.1% latency, 8.52 TFLOPS)
+        (conv_skip): MPConv(24.58 K = 0.04% Params, 603.98 MMACs = 0.08% MACs, 1.72 ms = 0.2% latency, 701.93 GFLOPS)
+      )
+      (64x64_up): Block(
+        327.68 K = 0.52% Params, 28.99 GMACs = 3.95% MACs, 12.6 ms = 1.46% latency, 4.6 TFLOPS
+        (conv_res0): MPConv(147.46 K = 0.24% Params, 14.5 GMACs = 1.98% MACs, 4.43 ms = 0.51% latency, 6.54 TFLOPS)
+        (emb_linear): MPConv(32.77 K = 0.05% Params, 786.43 KMACs = 0% MACs, 293.25 us = 0.03% latency, 5.36 GFLOPS)
+        (conv_res1): MPConv(147.46 K = 0.24% Params, 14.5 GMACs = 1.98% MACs, 2.38 ms = 0.28% latency, 12.2 TFLOPS)
+      )
+      (64x64_block0): Block(
+        176.13 K = 0.28% Params, 15.7 GMACs = 2.14% MACs, 9.03 ms = 1.05% latency, 3.48 TFLOPS
+        (conv_res0): MPConv(110.59 K = 0.18% Params, 10.87 GMACs = 1.48% MACs, 3.87 ms = 0.45% latency, 5.62 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 302.08 us = 0.03% latency, 2.6 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.08 ms = 0.13% latency, 6.71 TFLOPS)
+        (conv_skip): MPConv(12.29 K = 0.02% Params, 1.21 GMACs = 0.16% MACs, 1.88 ms = 0.22% latency, 1.29 TFLOPS)
+      )
+      (64x64_block1): Block(
+        135.17 K = 0.22% Params, 11.68 GMACs = 1.59% MACs, 8.28 ms = 0.96% latency, 2.82 TFLOPS
+        (conv_res0): MPConv(73.73 K = 0.12% Params, 7.25 GMACs = 0.99% MACs, 3.42 ms = 0.4% latency, 4.24 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 398.16 us = 0.05% latency, 1.98 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.14 ms = 0.13% latency, 6.35 TFLOPS)
+        (conv_skip): MPConv(8.19 K = 0.01% Params, 805.31 MMACs = 0.11% MACs, 1.61 ms = 0.19% latency, 1 TFLOPS)
+      )
+      (64x64_block2): Block(
+        135.17 K = 0.22% Params, 11.68 GMACs = 1.59% MACs, 4.96 ms = 0.57% latency, 4.71 TFLOPS
+        (conv_res0): MPConv(73.73 K = 0.12% Params, 7.25 GMACs = 0.99% MACs, 1.5 ms = 0.17% latency, 9.67 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 284.43 us = 0.03% latency, 2.77 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.07 ms = 0.12% latency, 6.78 TFLOPS)
+        (conv_skip): MPConv(8.19 K = 0.01% Params, 805.31 MMACs = 0.11% MACs, 444.41 us = 0.05% latency, 3.62 TFLOPS)
+      )
+      (64x64_block3): Block(
+        135.17 K = 0.22% Params, 11.68 GMACs = 1.59% MACs, 5.09 ms = 0.59% latency, 4.6 TFLOPS
+        (conv_res0): MPConv(73.73 K = 0.12% Params, 7.25 GMACs = 0.99% MACs, 1.53 ms = 0.18% latency, 9.49 TFLOPS)
+        (emb_linear): MPConv(16.38 K = 0.03% Params, 393.22 KMACs = 0% MACs, 278.47 us = 0.03% latency, 2.82 GFLOPS)
+        (conv_res1): MPConv(36.86 K = 0.06% Params, 3.62 GMACs = 0.49% MACs, 1.08 ms = 0.12% latency, 6.73 TFLOPS)
+        (conv_skip): MPConv(8.19 K = 0.01% Params, 805.31 MMACs = 0.11% MACs, 490.67 us = 0.06% latency, 3.28 TFLOPS)
+      )
+    )
+    (out_conv): MPConv(1.73 K = 0% Params, 169.87 MMACs = 0.02% MACs, 5.62 ms = 0.65% latency, 60.48 GFLOPS)
+  )
+  (logvar_fourier): MPFourier(0 = 0% Params, 0 MACs = 0% MACs, 0 s = 0% latency, 0 FLOPS)
+  (logvar_linear): MPConv(128 = 0% Params, 0 MACs = 0% MACs, 0 s = 0% latency, 0 FLOPS)
+)
