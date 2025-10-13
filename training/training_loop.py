@@ -35,7 +35,7 @@ from torch_utils import misc
 from training.utils import add_depth, compose_geometry, resolve_model, resolve_depth_model
 from calculate_metrics import get_metrics
 # CHANGED: Import the new collate functions and simplified dataset
-from .custom_litdata_loader import CustomLitDataset, VanillaCollate, DualSourceCollate, VANILLA_MODE
+from .custom_litdata_loader import CustomLitDataset, VanillaCollate, DualSourceCollate, VANILLA_MODE , PLAIN_MSE
 from tqdm import tqdm
 import torch.cuda
 import wandb
@@ -56,15 +56,20 @@ class NVLoss:
         sigma = (rnd_normal * self.P_std + self.P_mean).exp()
         weight = (sigma ** 2 + self.sigma_data ** 2) / (sigma * self.sigma_data) ** 2
         noise = torch.randn_like(tgt) * sigma
-        denoised, logvar = net(src, tgt + noise, sigma, labels, return_logvar=True)
 
-        if not VANILLA_MODE:
-            # In dual-source mode, `denoised` is [B,...] but `tgt` and `weight` are [2*B,...]
-            # We must slice tgt and weight to match the model's output.
-            loss = (weight[::2] / logvar.exp()) * ((denoised - tgt[::2]) ** 2) + logvar
+        if PLAIN_MSE:
+            # --- NEW: Plain MSE Logic ---
+            denoised = net(src, tgt + noise, sigma, labels, return_logvar=False)
+            loss = weight * ((denoised - tgt) ** 2)
+            return loss.mean()
         else:
-            loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
-        return loss
+            # --- OLD: Learned Variance Logic ---
+            denoised, logvar = net(src, tgt + noise, sigma, labels, return_logvar=True)
+            if not VANILLA_MODE:
+                loss = (weight[::2] / logvar.exp()) * ((denoised - tgt[::2]) ** 2) + logvar
+            else:
+                loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
+            return loss
 
 
 @persistence.persistent_class
@@ -244,7 +249,7 @@ def training_loop(
 
     dist.print0('Setting up training state...')
     state = dnnlib.EasyDict(cur_nimg=0, total_elapsed_time=0)
-    ddp = torch.nn.parallel.DistributedDataParallel(net, device_ids=[device])
+    ddp = torch.nn.parallel.DistributedDataParallel(net, device_ids=[device], find_unused_parameters=True)
     loss_fn = dnnlib.util.construct_class_by_name(**loss_kwargs)
     optimizer = dnnlib.util.construct_class_by_name(params=net.parameters(), **optimizer_kwargs)
     ema = dnnlib.util.construct_class_by_name(net=net, **ema_kwargs) if ema_kwargs is not None else None
@@ -527,35 +532,25 @@ def training_loop(
                 if VANILLA_MODE:
                     loss = loss_fn(net=ddp, src=src_image, tgt=tgt_image, labels=geometry)
                 else:
+                    # This entire 'else' block gets updated
                     num_pairs = tgt_image.shape[0] // 2
-                    
-
-                   
                     rnd_normal = torch.randn([num_pairs, 1, 1, 1], device=tgt_image.device)
                     sigma_per_pair = (rnd_normal * loss_fn.P_std + loss_fn.P_mean).exp()
                     sigma_full = sigma_per_pair.repeat_interleave(2, dim=0)
-                    
                     noise_per_pair = torch.randn([num_pairs, *tgt_image.shape[1:]], device=tgt_image.device)
-                    
                     noise_full = noise_per_pair.repeat_interleave(2, dim=0)
-                    
                     noisy_targets_full = tgt_image + noise_full * sigma_full
                     
-                    denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
-
-                
-                    if dist.get_rank() == 0 and progress_bar.n % 10 == 0:
-                        print(f"\n--- [Step {progress_bar.n}] Loss Calculation Verification ---")
-                        target_for_loss = tgt_image[::2]
-                        print(f"Source for Model: dtype={src_image.dtype}, min={src_image.min():.2f}, max={src_image.max():.2f}")
-                        print(f"Denoised (Output):dtype={denoised.dtype}, min={denoised.min():.2f}, max={denoised.max():.2f}")
-                        print(f"Target for Loss:  dtype={target_for_loss.dtype}, min={target_for_loss.min():.2f}, max={target_for_loss.max():.2f}")
-                        print("--------------------------------------------------\n")
-                    
-
-
-                    weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
-                    loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2])**2) + logvar
+                    if PLAIN_MSE:
+                        
+                        denoised = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=False)
+                        weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
+                        loss = (weight * ((denoised - tgt_image[::2])**2)).mean()
+                    else:
+                      
+                        denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
+                        weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
+                        loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2])**2) + logvar
 
                 
                 training_stats.report('Loss/loss', loss)

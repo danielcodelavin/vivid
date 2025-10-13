@@ -5,8 +5,8 @@ import torchvision.transforms.functional as F
 from training.utils import compose_geometry
 
 # This global variable will be used in the training loop to select the correct collate function.
-VANILLA_MODE = True
-
+VANILLA_MODE = False
+PLAIN_MSE = False
 
 class VanillaCollate:
     def __call__(self, batch: list[dict]) -> dict | None:

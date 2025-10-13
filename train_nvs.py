@@ -133,7 +133,7 @@ def launch_training(run_dir, c):
     wandb_config = {
         "project": "LVSM",
         "entity": "internetbootcamp",
-        "run_name": "plain vanilla vivid low LR test correct normalization",
+        "run_name": "output a40 nonvanilla",
         "enabled": True
     }
     if dist.get_rank() == 0 and wandb_config["enabled"]:

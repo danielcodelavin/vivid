@@ -6,3 +6,10 @@ output_nonvanilla
 output_nonvanilla/
 /output_nonvanilla/
 .output_nonvanilla/
+plainoutput
+plainoutput/
+/plainoutput/
+.plainoutput/
+lowLRexperiment
+/lowLRexperiment/
+.lowLRexperiment/

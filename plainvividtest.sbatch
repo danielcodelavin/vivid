@@ -21,4 +21,4 @@ echo "SLURM JOB: Running on host $(hostname)"
 echo "SLURM JOB: Python path: $(which python)"
 echo "========================================="
 
-/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 64 --outdir 'plainoutput' --channels 64 --duration 19200000 --checkpoint 640000 --snapshot 12800 --metrics 64000 --samples 12800 --status 1280 --lr 0.0024
+/home/stud/lavingal/miniforge3/envs/vivid/bin/python train_nvs.py --batch 128 --outdir 'plainoutput' --channels 64 --duration 19200000 --checkpoint 640000 --snapshot 12800 --metrics 64000 --samples 12800 --status 1280 --lr 0.0012
