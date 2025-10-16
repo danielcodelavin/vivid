@@ -98,6 +98,11 @@ class Logger(object):
 
         self.stdout.flush()
 
+
+    def isatty(self) -> bool:
+        """Forward the isatty call to the original stderr."""
+        return self.stderr.isatty()
+
     def close(self) -> None:
         """Flush, close possible files, and remove stdout/stderr mirroring."""
         self.flush()

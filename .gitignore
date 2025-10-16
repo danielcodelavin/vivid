@@ -13,3 +13,6 @@ plainoutput/
 lowLRexperiment
 /lowLRexperiment/
 .lowLRexperiment/
+trashoutput
+/trashoutput/
+.trashoutput/

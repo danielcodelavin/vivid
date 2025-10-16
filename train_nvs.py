@@ -133,7 +133,7 @@ def launch_training(run_dir, c):
     wandb_config = {
         "project": "LVSM",
         "entity": "internetbootcamp",
-        "run_name": "output a40 nonvanilla",
+        "run_name": "output a40 nonvanilla final model 7 vivid full",
         "enabled": True
     }
     if dist.get_rank() == 0 and wandb_config["enabled"]:
@@ -204,7 +204,7 @@ def parse_nimg(s):
 
 # Performance-related options.
 @click.option('--batch-gpu',        help='Limit batch size per GPU', metavar='NIMG',            type=parse_nimg, default=64 , show_default=True)
-@click.option('--fp16',             help='Enable mixed-precision training', metavar='BOOL',     type=bool, default=True, show_default=True)
+@click.option('--fp16',             help='Enable mixed-precision training', metavar='BOOL',     type=bool, default=False, show_default=True)
 @click.option('--ls',               help='Loss scaling', metavar='FLOAT',                       type=click.FloatRange(min=0, min_open=True), default=1, show_default=True)
 @click.option('--bench',            help='Enable cuDNN benchmarking', metavar='BOOL',           type=bool, default=True, show_default=True)
 

@@ -113,9 +113,9 @@ class MPConv(torch.nn.Module):
 
     def forward(self, x, gain=1):
         w = self.weight.to(torch.float32)
-        if self.training:
-            with torch.no_grad():
-                self.weight.copy_(normalize(w)) # forced weight normalization
+        # if self.training:
+        #     with torch.no_grad():
+        #         self.weight.copy_(normalize(w)) # forced weight normalization
         w = normalize(w) # traditional weight normalization
         w = w * (gain / np.sqrt(w[0].numel())) # magnitude-preserving scaling
         w = w.to(x.dtype)
@@ -248,7 +248,7 @@ class XAttnBlock(torch.nn.Module):
         self.epipolar_mixing = torch.nn.Parameter(torch.zeros((4, self.num_heads, ))) if self.num_heads != 0 and epipolar_attention_bias else None
 
 
-    def forward(self, x, features, emb, geometry=None):
+    def forward(self, x, features1, features2, emb, geometry=None):
         # Main branch.
         x = resample(x, f=self.resample_filter, mode=self.resample_mode)
         if self.flavor == 'enc':
@@ -269,46 +269,50 @@ class XAttnBlock(torch.nn.Module):
             x = self.conv_skip(x)
         x = mp_sum(x, y, t=self.res_balance)
 
-        # Self-attention.
+        # Self-attention and Cross-attention.
         if self.num_heads != 0:
             B, C, H, W = x.shape
             S_self = H * W
             D_head = C // self.num_heads
 
-
+            # 1. Query from target (x), Key/Value from self-attention
             qkv_self = self.attn_qkv(x).view(B, self.num_heads, D_head, 3, S_self)
             qkv_self = normalize(qkv_self, dim=2)
-            q, k_self, v_self = qkv_self.unbind(3) # q, k_self, v_self are each (B, H, D, S)
+            q, k_self, v_self = qkv_self.unbind(3)
 
+            # 2. Key/Value from cross-attention source 1
+            S_cross1 = features1.shape[2] * features1.shape[3]
+            kv_cross1 = self.x_attn_kv(features1).view(B, self.num_heads, D_head, 2, S_cross1)
+            kv_cross1 = normalize(kv_cross1, dim=2)
+            k_cross1, v_cross1 = kv_cross1.unbind(3)
 
-            S_cross = features.shape[2] * features.shape[3]
-            kv_cross = self.x_attn_kv(features).view(B, -1, self.num_heads, D_head, 2, S_cross)
-            kv_cross = kv_cross.permute(0, 2, 3, 4, 1, 5).reshape(B, self.num_heads, D_head, 2, -1)
-            kv_cross = normalize(kv_cross, dim=2)
-            k_cross, v_cross = kv_cross.unbind(3) # k_cross, v_cross are each (B, H, D, S)
+            # 3. Key/Value from cross-attention source 2
+            S_cross2 = features2.shape[2] * features2.shape[3]
+            kv_cross2 = self.x_attn_kv(features2).view(B, self.num_heads, D_head, 2, S_cross2)
+            kv_cross2 = normalize(kv_cross2, dim=2)
+            k_cross2, v_cross2 = kv_cross2.unbind(3)
 
-            # 3. Combine K and V from both streams along the sequence dimension
-            k = torch.cat([k_self, k_cross], dim=3)
-            v = torch.cat([v_self, v_cross], dim=3)
+            # 4. Concatenate all keys and values along the sequence dimension
+            k = torch.cat([k_self, k_cross1, k_cross2], dim=3)
+            v = torch.cat([v_self, v_cross1, v_cross2], dim=3)
 
-            # 4. Transpose all to (B, H, S, D) layout required by SDPA
+            # 5. Transpose for Scaled Dot Product Attention
             q = q.transpose(-1, -2)
             k = k.transpose(-1, -2)
             v = v.transpose(-1, -2)
 
-            # 5. Perform memory-efficient attention
+            # 6. Perform memory-efficient attention
             y = torch.nn.functional.scaled_dot_product_attention(q, k, v)
 
-            # 6. Reshape the output back to an image format
+            # 7. Reshape the output back to an image format
             y = y.transpose(-1, -2).reshape(B, C, H, W)
             y = self.attn_proj(y)
             x = mp_sum(x, y, t=self.attn_balance)
 
-            # Clip activations.
+        # Clip activations.
         if self.clip_act is not None:
             x = x.clip_(-self.clip_act, self.clip_act)
         return x
-
 
 #----------------------------------------------------------------------------
 # EDM2 U-Net model (Figure 21).
@@ -477,33 +481,36 @@ class XAttnUNet(torch.nn.Module):
 
 
     def forward(self, x, features, noise_labels, geometry):
-        # Embedding.
+         
         emb = self.emb_noise(self.emb_fourier(noise_labels))
-        if self.emb_label is not None and geometry is not None: 
+        if self.emb_label is not None and geometry is not None:
             emb = mp_sum(emb, self.emb_label(geometry), t=self.label_balance)
         emb = mp_silu(emb)
 
-        # Encoder.
+        # Separate features for dual-source cross-attention
+        features1 = [f[0::2] for f in features]
+        features2 = [f[1::2] for f in features]
+
+        # Encoder
         x = torch.cat([x, torch.ones_like(x[:, :1])], dim=1)
         skips = []
         
         for name, block in self.enc.items():
             if isinstance(block, XAttnBlock):
-                feature = features.pop(0)
-                x = block(x, feature, emb, geometry=geometry)
+                # Pass both feature maps to the cross-attention block
+                x = block(x, features1.pop(0), features2.pop(0), emb, geometry=geometry)
             else:
                 x = block(x) if 'conv' in name else block(x, emb)
             skips.append(x)
 
-        # Decoder.
+        # Decoder
         for name, block in self.dec.items():
             if 'block' in name:
                 x = mp_cat(x, skips.pop(), t=self.concat_balance)
             
-            # Apply checkpointing to every block call in the decoder
             if isinstance(block, XAttnBlock):
-                feature = features.pop(0)
-                x = checkpoint(block, x, feature, emb, geometry, use_reentrant=False)
+                # Pass both feature maps to the cross-attention block
+                x = checkpoint(block, x, features1.pop(0), features2.pop(0), emb, geometry, use_reentrant=False)
             else:
                 x = checkpoint(block, x, emb, use_reentrant=False)
         
@@ -616,26 +623,27 @@ class NVPrecond(torch.nn.Module):
         self.logvar_fourier = MPFourier(logvar_channels)
         self.logvar_linear = MPConv(logvar_channels, 1, kernel=[])
 
-    
+        
 
     def _forward_dualsource(self, src, dst, sigma, geometry, conditioning_image=None, force_fp32=False, return_logvar=False, return_features=False, inject_features=None, **unet_kwargs):
         x = dst.to(torch.float32)
         sigma = sigma.to(torch.float32).reshape(-1, 1, 1, 1)
         geometry = geometry * int(not self.uncond)
         dtype = torch.float16 if (self.use_fp16 and not force_fp32 and x.device.type == 'cuda') else torch.float32
-       # print("geometry size:  "+ str(geometry.size()) )
-        # Preconditioning weights.
+
+        # Preconditioning weights (calculated for the full 2B batch)
         c_skip = self.sigma_data ** 2 / (sigma ** 2 + self.sigma_data ** 2)
         c_out = sigma * self.sigma_data / (sigma ** 2 + self.sigma_data ** 2).sqrt()
         c_in = 1 / (self.sigma_data ** 2 + sigma ** 2).sqrt()
         c_noise = sigma.flatten().log() / 4
-
-        # Run the model.
         x_in = (c_in * x).to(dtype)
+
+        # --- Start: Re-integrated Logic ---
         # Add warped depth coordinates to network inputs
         if self.warp_depth_coor:
-            assert src.shape[1] == 4
+            assert src.shape[1] == 4, "warp_depth_coor requires depth channel in src"
             depth = src[:, 3:]
+            # This check for all-zero src is a good safeguard
             if torch.all(src[:, :3] == 0):
                 src_grid, dst_grid = [torch.zeros(src.shape[:1] + (128,) + src.shape[-2:], device=src.device, dtype=src.dtype)] * 2
             else:
@@ -643,47 +651,42 @@ class NVPrecond(torch.nn.Module):
             src = torch.cat([src[:, :3], src_grid], dim=1)
             x_in = torch.cat([x_in, dst_grid], dim=1)
 
-        # Add a low-res conditioning images to an SR model
+        # Add a low-res conditioning image for SR model
         if self.super_res:
-            assert conditioning_image is not None
+            assert conditioning_image is not None, "super_res mode requires a conditioning_image"
+            # Add noise to the low-res conditioning image
             conditioning_image = conditioning_image + self.noisy_sr * torch.randn_like(conditioning_image)
-            x_in = torch.cat([x_in, conditioning_image], dim=1)
-        
-        # Features
-        if not self.training and inject_features is not None: # Use precomputed features
+            # The conditioning image should be duplicated to match the 2B batch size of x_in
+            x_in = torch.cat([x_in, conditioning_image.repeat_interleave(2, dim=0)], dim=1)
+        # --- End: Re-integrated Logic ---
+
+        # Encoder processes the full (2B) interleaved source batch
+        if not self.training and inject_features is not None:
             features = copy.deepcopy(inject_features)
-        elif self.encoder is None: # Insert zeros for an unconditional models
-            features = []
-            for name, block in self.unet.enc.items():
-                if isinstance(block, XAttnBlock):
-                    res = int(name.split("x")[0])
-                    features.append(torch.zeros((x_in.shape[0], block.out_channels, res, res), dtype=x_in.dtype, device=x_in.device))
-            for name, block in self.unet.dec.items():
-                if isinstance(block, XAttnBlock):
-                    res = int(name.split("x")[0])
-                    features.append(torch.zeros((x_in.shape[0], block.out_channels, res, res), dtype=x_in.dtype, device=x_in.device))
-        else: # Default encoder
+        else:
             features = self.encoder(src.to(dtype), c_noise * int(not self.no_time_enc), geometry, **unet_kwargs)
+        
         if return_features:
             return features
 
-        x_in = x_in[::2]
-        batch = x_in.shape[0]
-        geometry = geometry.view(batch, -1)
-        c_noise = c_noise[::2]
-        dst = dst[::2]
-        c_out = c_out[::2]
+        # The UNet now handles the feature separation and combination internally.
+        batch_size = x_in.shape[0] // 2
+        F_x = self.unet(
+            x_in[::2],                          # De-duplicated noisy targets [B, C, H, W]
+            features,                           # Full feature list from encoder [List of (2B, C', H', W')]
+            c_noise[::2],                       # De-duplicated noise labels [B]
+            geometry.view(batch_size, -1),      # Reshaped geometry [B, 40]
+            **unet_kwargs
+        )
+        
+        # Final output calculation is performed on the B-sized tensors
+        D_x = c_skip[::2] * dst[::2] + c_out[::2] * F_x.to(torch.float32)
 
-    #    print("geometry size 2:  "+ str(geometry.size()) )
-        F_x = self.unet(x_in, features, c_noise, geometry, **unet_kwargs)
-        D_x = c_skip[::2] * dst + c_out * F_x.to(torch.float32)
-
-        # Estimate uncertainty if requested.
+        # Estimate uncertainty if requested
         if return_logvar:
-            logvar = self.logvar_linear(self.logvar_fourier(c_noise)).reshape(-1, 1, 1, 1)
-            return D_x, logvar # u(sigma) in Equation 21
+            logvar = self.logvar_linear(self.logvar_fourier(c_noise[::2])).reshape(-1, 1, 1, 1)
+            return D_x, logvar
         return D_x
-
 
     def forward(self, src, dst, sigma, geometry=None, conditioning_image=None, force_fp32=False, return_logvar=False, return_features=False, inject_features=None, **unet_kwargs):
         if not VANILLA_MODE:

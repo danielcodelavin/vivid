@@ -66,9 +66,11 @@ class NVLoss:
             # --- OLD: Learned Variance Logic ---
             denoised, logvar = net(src, tgt + noise, sigma, labels, return_logvar=True)
             if not VANILLA_MODE:
-                loss = (weight[::2] / logvar.exp()) * ((denoised - tgt[::2]) ** 2) + logvar
+                logvar = torch.clamp(logvar, -20, 20)
+                loss = (weight * torch.exp(-logvar) * ((denoised - tgt) ** 2) + logvar)
             else:
-                loss = (weight / logvar.exp()) * ((denoised - tgt) ** 2) + logvar
+                logvar = torch.clamp(logvar, -20, 20)
+                loss = (weight * torch.exp(-logvar) * ((denoised - tgt) ** 2) + logvar)
             return loss
 
 
@@ -126,7 +128,7 @@ def analyze_flops(net, device, batch_size, img_resolution, img_channels, source_
         else: # Dual-source mode
             # The collate function produces a variable number of items, but we can simulate a typical case.
             # A batch_size of scenes might produce batch_size * 6 * 2 items.
-            dummy_bs = batch_size * 12 
+            dummy_bs = batch_size * 2
             dummy_src = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
             dummy_dst = torch.randn(dummy_bs, img_channels, img_resolution, img_resolution, dtype=torch.float32, device=device)
             dummy_sigma = torch.randn(dummy_bs, device=device)
@@ -546,11 +548,13 @@ def training_loop(
                         denoised = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=False)
                         weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
                         loss = (weight * ((denoised - tgt_image[::2])**2)).mean()
-                    else:
-                      
+                    else: 
                         denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
+        
+                        # FIX: Apply the stable loss calculation
+                        logvar = torch.clamp(logvar, -20, 20)
                         weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
-                        loss = (weight / logvar.exp()) * ((denoised - tgt_image[::2])**2) + logvar
+                        loss = (weight * torch.exp(-logvar) * ((denoised - tgt_image[::2])**2) + logvar)
 
                 
                 training_stats.report('Loss/loss', loss)
