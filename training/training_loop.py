@@ -270,7 +270,7 @@ def training_loop(
     dist.print0(f'Training from {state.cur_nimg // 1000} kimg to {stop_at_nimg // 1000} kimg ({(stop_at_nimg - state.cur_nimg) // batch_size} iters):')
     dist.print0()
 
-    # CHANGED: Select the collate function based on the mode
+   
     if VANILLA_MODE:
         dist.print0("INFO: Using VanillaCollate for data processing.")
         collate_fn_instance = VanillaCollate()
@@ -278,11 +278,11 @@ def training_loop(
         dist.print0("INFO: Using DualSourceCollate for data processing.")
         collate_fn_instance = DualSourceCollate()
 
-    # CHANGED: Remove old collate settings from kwargs
+  
     data_loader_kwargs.pop('collate_fn', None)
     data_loader_kwargs.pop('class_name', None)
     
-    # CHANGED: DataLoader now uses the selected collate function and batch_gpu refers to scenes
+   
     dataloader = torch.utils.data.DataLoader(
         dataset=dataset_obj,
         sampler=None,
@@ -298,12 +298,12 @@ def training_loop(
 
     if dist.get_rank() == 0 and eval_samples:
         dist.print0('Setting up test dataloader for sample generation...')
-        # CHANGED: test dataset now uses the same robust architecture
+   
         test_dataset_obj = CustomLitDataset(path=test_dataset_path, cache_dir=test_cache_dir)
         test_dataset_loader = torch.utils.data.DataLoader(
             test_dataset_obj,
-            batch_size=eval_samples, # Now refers to number of scenes
-            collate_fn=collate_fn_instance, # Use the same collate function
+            batch_size=eval_samples, 
+            collate_fn=collate_fn_instance, 
             shuffle=False,
             num_workers=data_loader_kwargs['num_workers'],
             pin_memory=True
@@ -403,11 +403,11 @@ def training_loop(
                             geometry = geometry.repeat_interleave(2, dim=0)
 
                         src = encoder.encode_latents(src_image.to(device))
-                        # The ground truth `tgt` is only for visualization at the end, its shape doesn't need to be duplicated.
+                       
                         tgt_for_vis = encoder.encode_latents(tgt_image.to(device))
                         sampler_kwargs = {}
 
-                        # The noise tensor must match the shape of the model's INPUT (`src`), not the ground truth target.
+                      
                         noise_for_sampler = torch.randn_like(src)
 
                         src_for_depth = src_image if not sr_training else data["sr_src_image"]
@@ -437,7 +437,7 @@ def training_loop(
                         src_for_grid = src_image[::2].clip(0, 255).to(torch.uint8)
                         tgt_for_grid = tgt_image.clip(0, 255).to(torch.uint8)
 
-                        # 2. Concatenate the correctly formatted uint8 tensors
+                      
                         grid_tensors = torch.cat([src_for_grid, predicted_images_uint8, tgt_for_grid], dim=0)
                         if net.super_res:
                             lr_image = encoder.decode(low_res).cpu()
@@ -551,10 +551,17 @@ def training_loop(
                     else: 
                         denoised, logvar = ddp(src=src_image, dst=noisy_targets_full, sigma=sigma_full, geometry=geometry, return_logvar=True)
         
-                        # FIX: Apply the stable loss calculation
+                     
                         logvar = torch.clamp(logvar, -20, 20)
                         weight = (sigma_per_pair**2 + loss_fn.sigma_data**2) / (sigma_per_pair * loss_fn.sigma_data)**2
                         loss = (weight * torch.exp(-logvar) * ((denoised - tgt_image[::2])**2) + logvar)
+                        with torch.no_grad():
+                            loss_mean = loss.mean()
+                            loss_std = loss.std()
+                            clamp_min = loss_mean - 3 * loss_std
+                            clamp_max = loss_mean + 3 * loss_std
+
+                        loss = torch.clamp(loss, min=clamp_min.item(), max=clamp_max.item())
 
                 
                 training_stats.report('Loss/loss', loss)
@@ -570,10 +577,11 @@ def training_loop(
             for param in net.parameters():
                 if param.grad is not None:
                     torch.nan_to_num(param.grad, nan=0, posinf=0, neginf=0, out=param.grad)
+        torch.nn.utils.clip_grad_norm_(net.parameters(), max_norm=1.0)
         optimizer.step()
 
         if VANILLA_MODE:
-            state.cur_nimg += batch_size # Note: cur_nimg is an approximation based on scenes processed, not individual images
+            state.cur_nimg += batch_size 
         else:
             state.cur_nimg += batch_size * 6
         
